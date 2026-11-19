@@ -3,6 +3,8 @@ import {
   LayoutDashboard,
   Download,
   History,
+  Calendar,
+  Users,
   Globe2,
   Settings,
   ShieldCheck,
@@ -22,8 +24,10 @@ const NAV_ITEMS = [
   { href: '/', code: '01', label: 'Pull Counter', icon: LayoutDashboard },
   { href: '/import', code: '02', label: 'Zero-Install Import', icon: Download, badge: 'PKTMON' },
   { href: '/history', code: '03', label: 'Pull Ledger', icon: History },
-  { href: '/stats', code: '04', label: 'Global Stats', icon: Globe2 },
-  { href: '/settings', code: '05', label: 'Profiles & Sync', icon: Settings },
+  { href: '/timeline', code: '04', label: 'Timeline', icon: Calendar, badge: 'V1.5' },
+  { href: '/characters', code: '05', label: 'Characters', icon: Users },
+  { href: '/stats', code: '06', label: 'Global Stats', icon: Globe2 },
+  { href: '/settings', code: '07', label: 'Profiles & Sync', icon: Settings },
 ];
 
 export default function Sidebar({

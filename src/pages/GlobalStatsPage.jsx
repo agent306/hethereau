@@ -19,6 +19,7 @@ import {
   getUnsyncedGlobalRecords,
 } from '../lib/statsApi.js';
 import ItemAvatar from '../components/ItemAvatar.jsx';
+import { BANNER_FEATURED_META } from '../lib/officialMedia.js';
 
 export default function GlobalStatsPage({
   catalog,
@@ -426,22 +427,32 @@ export default function GlobalStatsPage({
               {poolStats.banners.map((b) => {
                 const rate =
                   b.total_pulls > 0 ? ((b.s_hits / b.total_pulls) * 100).toFixed(2) : '0.00';
+                const meta = BANNER_FEATURED_META[b.banner_id];
+                const featuredItem = meta?.charId ? catalog?.resolveItem(meta.charId) : null;
                 return (
                   <div
                     key={b.banner_id}
-                    className="rounded-lg border border-white/8 bg-[#090b12] px-3.5 py-2.5"
+                    className="flex items-center gap-3 rounded-lg border border-white/8 bg-[#090b12] px-3 py-2.5"
                   >
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="truncate text-xs font-semibold text-white">
-                        {b.banner_title}
-                      </span>
-                      <span className="font-mono text-xs font-bold text-[#f5c451] tabular-nums">
-                        {b.total_pulls.toLocaleString()}
-                      </span>
-                    </div>
-                    <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-slate-400">
-                      <span>{b.s_hits.toLocaleString()} S-Class hits</span>
-                      <span className="text-[#2ee6ff]">{rate}% rate</span>
+                    {featuredItem && <ItemAvatar item={featuredItem} size="md" />}
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="truncate text-xs font-semibold text-white">
+                          {b.banner_title}
+                          {meta?.charName && (
+                            <span className="ml-1.5 font-normal text-slate-400">
+                              ({meta.charName})
+                            </span>
+                          )}
+                        </span>
+                        <span className="font-mono text-xs font-bold text-[#f5c451] tabular-nums">
+                          {b.total_pulls.toLocaleString()}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center justify-between font-mono text-[10px] text-slate-400">
+                        <span>{b.s_hits.toLocaleString()} S-Class hits</span>
+                        <span className="text-[#2ee6ff]">{rate}% rate</span>
+                      </div>
                     </div>
                   </div>
                 );

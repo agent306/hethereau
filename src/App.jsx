@@ -4,6 +4,8 @@ import SyncConflictModal from './components/SyncConflictModal.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ImportPage from './pages/ImportPage.jsx';
 import HistoryPage from './pages/HistoryPage.jsx';
+import TimelinePage from './pages/TimelinePage.jsx';
+import CharactersPage from './pages/CharactersPage.jsx';
 import GlobalStatsPage from './pages/GlobalStatsPage.jsx';
 import StaffStatsPage from './pages/StaffStatsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
@@ -432,6 +434,10 @@ export default function App() {
               allRecords={analysis.allRecords}
               initialPool={poolParam}
             />
+          ) : pathname === '/timeline' ? (
+            <TimelinePage catalog={catalog} />
+          ) : pathname === '/characters' ? (
+            <CharactersPage catalog={catalog} allRecords={analysis.allRecords} />
           ) : pathname === '/stats' ? (
             <GlobalStatsPage
               catalog={catalog}

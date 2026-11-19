@@ -654,6 +654,146 @@ async function handleStaffStats(request, env) {
   );
 }
 
+async function handleOfficialFeed(request, ctx) {
+  const cacheKey = new Request(new URL("/api/official/feed", request.url).toString());
+  const cached = await caches.default.match(cacheKey);
+  if (cached) {
+    const body = await cached.text();
+    return new Response(body, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=1800",
+        "X-Feed-Cache": "HIT",
+        ...corsHeaders(request),
+      },
+    });
+  }
+
+  function extractBalancedObject(src, keyToken) {
+    const idx = src.indexOf(keyToken);
+    if (idx < 0) return null;
+    const start = src.indexOf("{", idx);
+    if (start < 0) return null;
+    let depth = 0;
+    let inStr = false;
+    let esc = false;
+    for (let i = start; i < src.length; i++) {
+      const ch = src[i];
+      if (inStr) {
+        if (esc) esc = false;
+        else if (ch === "\\") esc = true;
+        else if (ch === '"') inStr = false;
+      } else {
+        if (ch === '"') inStr = true;
+        else if (ch === "{") depth++;
+        else if (ch === "}") {
+          depth--;
+          if (depth === 0) {
+            return src.slice(start, i + 1);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function stripTrailingCommas(jsonLike) {
+    let s = jsonLike;
+    while (/,\s*[}\]]/.test(s)) {
+      s = s.replace(/,(\s*[}\]])/g, "$1");
+    }
+    return s;
+  }
+
+  const normalizeNews = (arr) =>
+    (Array.isArray(arr) ? arr : []).slice(0, 10).map((it) => ({
+      title: String(it.title || "").trim(),
+      url: String(it.url || "").startsWith("http")
+        ? String(it.url)
+        : `https://nte.perfectworld.com${it.url || ""}`,
+      time: String(it.time || ""),
+      channel: String(it.channelName || "news"),
+    }));
+
+  let news = { latest: [], gamenews: [], gameevent: [], gamebroad: [] };
+  let carousel = [];
+
+  try {
+    const [newsRes, swiperRes] = await Promise.all([
+      fetch("https://nte.perfectworld.com/include/newsData20260112.js", {
+        headers: { "User-Agent": "Hethereau-Tracker/1.0" },
+      }),
+      fetch(
+        "https://www.perfectworld.com/public/commonData/gamesData/gameSwiper/nte-gameSwiper.js",
+        { headers: { "User-Agent": "Hethereau-Tracker/1.0" } }
+      ),
+    ]);
+
+    if (newsRes.ok) {
+      const txt = await newsRes.text();
+      const enRaw = extractBalancedObject(txt, '"en"');
+      if (enRaw) {
+        const enObj = JSON.parse(stripTrailingCommas(enRaw));
+        news = {
+          latest: normalizeNews(enObj.news),
+          gamenews: normalizeNews(enObj.gamenews),
+          gameevent: normalizeNews(enObj.gameevent),
+          gamebroad: normalizeNews(enObj.gamebroad),
+        };
+      }
+    }
+
+    if (swiperRes.ok) {
+      const swTxt = await swiperRes.text();
+      const clean = stripTrailingCommas(
+        swTxt.replace(/^\s*var\s+nte_data_data\s*=\s*/, "").replace(/;\s*$/, "")
+      );
+      const swObj = JSON.parse(clean);
+      const list = Array.isArray(swObj.lb1_en) ? swObj.lb1_en : [];
+      carousel = list
+        .filter((x) => x && x.bigpic)
+        .map((x) => ({
+          image: String(x.bigpic),
+          link: String(x.link || x.mlink || "https://nte.perfectworld.com/en/main.html"),
+          title: String(x.title || ""),
+        }));
+    }
+  } catch (err) {
+    console.error(JSON.stringify({ level: "warn", scope: "official_feed", error: String(err) }));
+  }
+
+  const payload = JSON.stringify({
+    fetchedAt: new Date().toISOString(),
+    source: "nte.perfectworld.com",
+    news,
+    carousel,
+  });
+
+  ctx.waitUntil(
+    caches.default.put(
+      cacheKey,
+      new Response(payload, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json; charset=utf-8",
+          "Cache-Control": "public, max-age=1800",
+        },
+      })
+    )
+  );
+
+  return new Response(payload, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Cache-Control": "public, max-age=1800",
+      "X-Feed-Cache": "MISS",
+      ...corsHeaders(request),
+    },
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
@@ -664,6 +804,9 @@ export default {
     try {
       if (request.method === "GET" && url.pathname === "/api/health") {
         return jsonResponse(request, { ok: true, service: "hethereau-stats" });
+      }
+      if (request.method === "GET" && url.pathname === "/api/official/feed") {
+        return await handleOfficialFeed(request, ctx);
       }
       if (request.method === "GET" && url.pathname === "/api/stats/global") {
         return await handleGlobalStats(request, env, ctx);

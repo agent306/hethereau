@@ -185,6 +185,15 @@ export async function fetchGlobalStats({ fresh = false } = {}) {
   return data;
 }
 
+export async function fetchOfficialFeed() {
+  const res = await fetch(`${getStatsApiUrl()}/api/official/feed`);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    throw new Error(data?.error || `Failed to load official feed (${res.status})`);
+  }
+  return data;
+}
+
 export async function fetchStaffStats({ googleAccessToken, secret } = {}) {
   const headers = {};
   if (googleAccessToken) {
