@@ -117,6 +117,39 @@ function formatDriveApiError(action, status, bodyText) {
   return `Drive ${action} failed (${status}): ${String(bodyText || '').slice(0, 180)}`;
 }
 
+export async function requestStaffGoogleToken({ prompt = 'select_account' } = {}) {
+  const id = getGoogleClientId();
+  if (!id) {
+    throw new Error('Google Sign-In is not configured on this deployment.');
+  }
+  await loadGoogleIdentityScript();
+
+  return await new Promise((resolve, reject) => {
+    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+      client_id: id,
+      scope: 'https://www.googleapis.com/auth/userinfo.email',
+      callback: (resp) => {
+        if (resp?.error) {
+          reject(new Error(resp.error_description || resp.error));
+          return;
+        }
+        if (!resp?.access_token) {
+          reject(new Error('Google did not return an access token.'));
+          return;
+        }
+        resolve({
+          accessToken: resp.access_token,
+          expiresAt: Date.now() + Number(resp.expires_in || 3500) * 1000,
+        });
+      },
+      error_callback: (err) => {
+        reject(new Error(err?.message || 'Google sign-in popup was closed or blocked.'));
+      },
+    });
+    tokenClient.requestAccessToken({ prompt });
+  });
+}
+
 export async function fetchGoogleUserEmail(accessToken) {
   try {
     const res = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {

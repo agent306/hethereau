@@ -1,0 +1,35 @@
+{
+  "$schema": "https://raw.githubusercontent.com/cloudflare/workers-sdk/main/packages/wrangler/config-schema.json",
+  "name": "hethereau-stats",
+  "main": "src/index.js",
+  "compatibility_date": "2026-11-01",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true
+    }
+  },
+  "vars": {
+    "GOOGLE_CLIENT_ID": "342473595793-u4n964dq1fe9i0ilr81olbi7i3t1bbqc.apps.googleusercontent.com",
+    "STAFF_EMAILS": "masigning@gmail.com"
+  },
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "POOL_STATS_DO",
+        "class_name": "PoolStatsDO"
+      },
+      {
+        "name": "STAFF_TELEMETRY_DO",
+        "class_name": "StaffTelemetryDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["PoolStatsDO", "StaffTelemetryDO"]
+    }
+  ]
+}

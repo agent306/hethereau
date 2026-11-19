@@ -4,11 +4,17 @@ import SyncConflictModal from './components/SyncConflictModal.jsx';
 import DashboardPage from './pages/DashboardPage.jsx';
 import ImportPage from './pages/ImportPage.jsx';
 import HistoryPage from './pages/HistoryPage.jsx';
+import GlobalStatsPage from './pages/GlobalStatsPage.jsx';
+import StaffStatsPage from './pages/StaffStatsPage.jsx';
 import SettingsPage from './pages/SettingsPage.jsx';
 import { loadCatalog } from './lib/catalog.js';
 import { loadAppState, saveAppState } from './lib/storage.js';
 import { analyzeAccountPulls, mergePullRecords } from './lib/pityEngine.js';
 import { useLocation } from './lib/router.js';
+import {
+  contributePullRecords,
+  getUnsyncedGlobalRecords,
+} from './lib/statsApi.js';
 import {
   countStateRecords,
   createDriveSyncFile,
@@ -36,6 +42,8 @@ export default function App() {
     error: null,
   });
   const [conflict, setConflict] = useState(null);
+  const [globalSyncVersion, setGlobalSyncVersion] = useState(0);
+  const [globalSyncStatus, setGlobalSyncStatus] = useState(null);
 
   const driveAuthRef = useRef({
     accessToken: null,
@@ -263,13 +271,47 @@ export default function App() {
     return analyzeAccountPulls(activeProfile?.records || [], catalog);
   }, [activeProfile, catalog]);
 
-  function handleCommitImport(incomingRecords) {
+  const unsyncedGlobalCount = useMemo(() => {
+    return getUnsyncedGlobalRecords(activeProfile?.records || []).length;
+  }, [activeProfile, globalSyncVersion]);
+
+  async function runGlobalContribution(records, meta = {}) {
+    setGlobalSyncStatus({ syncing: true, type: 'ok', message: '' });
+    try {
+      const res = await contributePullRecords(records, {
+        format: meta.format || 'nte-gacha-export',
+        region: activeProfile?.region || 'Global',
+        source: meta.source || 'pktmon_zero_install',
+      });
+      setGlobalSyncVersion((v) => v + 1);
+      setGlobalSyncStatus({
+        syncing: false,
+        type: 'ok',
+        message:
+          res.accepted > 0
+            ? `Contributed +${res.accepted.toLocaleString()} anonymized pulls to Global Stats${
+                res.duplicates > 0 ? ` (${res.duplicates.toLocaleString()} already counted)` : ''
+              }.`
+            : `All ${res.duplicates.toLocaleString()} pulls are already synced to Global Stats.`,
+      });
+    } catch (err) {
+      setGlobalSyncStatus({
+        syncing: false,
+        type: 'err',
+        message: `Global Stats sync skipped: ${err.message}`,
+      });
+    }
+  }
+
+  function handleCommitImport(incomingRecords, options = {}) {
     let result = { added: 0, duplicates: 0 };
+    let mergedAll = [];
     updateState((prev) => {
       const pid = prev.activeProfileId;
       const prof = prev.profiles[pid];
       const merged = mergePullRecords(prof.records, incomingRecords);
       result = { added: merged.added, duplicates: merged.duplicates };
+      mergedAll = merged.merged;
       return {
         ...prev,
         profiles: {
@@ -282,7 +324,25 @@ export default function App() {
         },
       };
     });
+
+    if (options.contributeToGlobal) {
+      // Send full merged eligible timeline so server computes exact inter-S pity
+      // while deduplicating previously counted pulls cleanly.
+      const toSend = mergedAll.length > 0 ? mergedAll : incomingRecords;
+      runGlobalContribution(toSend, {
+        format: options.format || 'nte-gacha-export',
+        source: 'pktmon_zero_install',
+      });
+    }
     return result;
+  }
+
+  function handleSyncUnsyncedGlobal() {
+    if (!activeProfile?.records?.length) return;
+    runGlobalContribution(activeProfile.records, {
+      format: 'unsynced_profile_sync',
+      source: 'pktmon_zero_install',
+    });
   }
 
   function handleAddProfile(name, region) {
@@ -372,6 +432,18 @@ export default function App() {
               allRecords={analysis.allRecords}
               initialPool={poolParam}
             />
+          ) : pathname === '/stats' ? (
+            <GlobalStatsPage
+              catalog={catalog}
+              activeProfile={activeProfile}
+              globalSyncVersion={globalSyncVersion}
+              onGlobalSynced={() => setGlobalSyncVersion((v) => v + 1)}
+            />
+          ) : pathname === '/staff' ? (
+            <StaffStatsPage
+              activeGoogleToken={driveAuthRef.current.accessToken}
+              activeGoogleEmail={driveSync.email}
+            />
           ) : pathname === '/settings' ? (
             <SettingsPage
               appState={appState}
@@ -385,7 +457,12 @@ export default function App() {
               onRestoreState={(next) => updateState(next)}
             />
           ) : (
-            <DashboardPage analysis={analysis} />
+            <DashboardPage
+              analysis={analysis}
+              unsyncedGlobalCount={unsyncedGlobalCount}
+              globalSyncStatus={globalSyncStatus}
+              onSyncUnsyncedGlobal={handleSyncUnsyncedGlobal}
+            />
           )}
 
           <footer className="mt-12 border-t border-white/8 pt-6 pb-4 text-center text-xs text-slate-500">

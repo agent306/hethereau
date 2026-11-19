@@ -6,6 +6,9 @@ import {
   Coins,
   Layers,
   Users,
+  UploadCloud,
+  CheckCircle2,
+  AlertCircle,
 } from 'lucide-react';
 import { POOL_ORDER, isCharacterItem } from '../lib/catalog.js';
 import BannerCard from '../components/BannerCard.jsx';
@@ -13,7 +16,12 @@ import PityChart from '../components/PityChart.jsx';
 import HistoryTable from '../components/HistoryTable.jsx';
 import Link from '../components/Link.jsx';
 
-export default function DashboardPage({ analysis }) {
+export default function DashboardPage({
+  analysis,
+  unsyncedGlobalCount = 0,
+  globalSyncStatus = null,
+  onSyncUnsyncedGlobal,
+}) {
   const { pools, allRecords, totals } = analysis;
   const [charactersOnly, setCharactersOnly] = useState(true);
   const isEmpty = totals.pulls === 0 && totals.bonusRows === 0;
@@ -43,6 +51,20 @@ export default function DashboardPage({ analysis }) {
         </div>
 
         <div className="flex flex-wrap items-center gap-2.5">
+          {unsyncedGlobalCount > 0 && onSyncUnsyncedGlobal && (
+            <button
+              type="button"
+              onClick={onSyncUnsyncedGlobal}
+              disabled={globalSyncStatus?.syncing}
+              className="nte-cut-btn inline-flex items-center gap-2 bg-[#2ee6ff]/14 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-[#67e8f9] ring-1 ring-[#2ee6ff]/45 transition hover:bg-[#2ee6ff]/22 disabled:opacity-50"
+              title="Contribute your unsynced anonymized pulls to Hethereau Global Stats"
+            >
+              <UploadCloud className="h-4 w-4 text-[#2ee6ff]" />
+              {globalSyncStatus?.syncing
+                ? 'Syncing...'
+                : `Sync ${unsyncedGlobalCount.toLocaleString()} to Global`}
+            </button>
+          )}
           {!isEmpty && (
             <button
               type="button"
@@ -67,6 +89,23 @@ export default function DashboardPage({ analysis }) {
           </Link>
         </div>
       </div>
+
+      {globalSyncStatus?.message && (
+        <div
+          className={`flex items-center gap-2 rounded-lg border px-4 py-2.5 text-xs ${
+            globalSyncStatus.type === 'err'
+              ? 'border-rose-500/35 bg-rose-500/10 text-rose-200'
+              : 'border-emerald-400/35 bg-emerald-500/10 text-emerald-200'
+          }`}
+        >
+          {globalSyncStatus.type === 'err' ? (
+            <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
+          ) : (
+            <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-300" />
+          )}
+          <span>{globalSyncStatus.message}</span>
+        </div>
+      )}
 
       {/* Empty State Callout — Eibon Intake Card */}
       {isEmpty && (

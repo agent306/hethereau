@@ -6,6 +6,7 @@ import { normalizeExternalJson } from './formats.js';
 import { analyzeAccountPulls, getNextPullChance, mergePullRecords } from './pityEngine.js';
 import { generateSampleNteExport } from './sampleData.js';
 import { smartMergeStates, statesHaveSamePullIds } from './googleDriveSync.js';
+import { getContributePreference, isEligibleForGlobalStats } from './statsApi.js';
 
 function loadLocalCatalog() {
   const dataDir = path.resolve(process.cwd(), 'public', 'data');
@@ -182,5 +183,33 @@ describe('NTE Pity Engine & Format Parsers', () => {
     expect(getNextPullChance('fork_lottery', 0)).toEqual({ percent: 3, label: '3.0%', tier: 'base' });
     expect(getNextPullChance('fork_lottery', 59)).toEqual({ percent: 100, label: '100%', tier: 'hard' });
     expect(getNextPullChance('mystery_box', 12)).toBeNull();
+  });
+
+  it('defaults global stats contribution to ON and excludes manual/demo records', () => {
+    expect(getContributePreference()).toBe(true);
+    expect(
+      isEligibleForGlobalStats({
+        id: '3b0fd73d4bf5adcc5d1ba187101c9513',
+        item_id: '1010',
+        time: '2026-11-19 15:27:58',
+        source: 'pktmon_zero_install',
+      })
+    ).toBe(true);
+    expect(
+      isEligibleForGlobalStats({
+        id: 'manual_1234',
+        item_id: '1010',
+        time: '2026-11-19 15:27:58',
+        source: 'manual',
+      })
+    ).toBe(false);
+    expect(
+      isEligibleForGlobalStats({
+        id: 'demo_1234',
+        item_id: '1010',
+        time: '2026-11-19 15:27:58',
+        source: 'demo',
+      })
+    ).toBe(false);
   });
 });

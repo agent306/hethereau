@@ -10,11 +10,16 @@ import {
   PlusCircle,
   Download,
   CheckCircle2,
+  Globe2,
 } from 'lucide-react';
 import { normalizeExternalJson } from '../lib/formats.js';
 import { mergePullRecords } from '../lib/pityEngine.js';
 import { POOL_DEFINITIONS, POOL_ORDER } from '../lib/catalog.js';
 import { navigate } from '../lib/router.js';
+import {
+  getContributePreference,
+  setContributePreference,
+} from '../lib/statsApi.js';
 
 const PROD_ORIGIN = 'https://hethereau.pages.dev';
 
@@ -26,6 +31,7 @@ export default function ImportPage({
   const [mode, setMode] = useState('pktmon');
   const [noFilter, setNoFilter] = useState(false);
   const [autoPage, setAutoPage] = useState(false);
+  const [contributeGlobal, setContributeGlobal] = useState(getContributePreference);
   const [copied, setCopied] = useState(false);
   const [pasteText, setPasteText] = useState('');
   const [dragActive, setDragActive] = useState(false);
@@ -102,7 +108,10 @@ export default function ImportPage({
 
   function handleCommit() {
     if (!preview || !preview.ok) return;
-    const res = onCommitImport(preview.records);
+    const res = onCommitImport(preview.records, {
+      contributeToGlobal: contributeGlobal,
+      format: preview.format,
+    });
     setPasteText('');
     setStatusMsg({
       type: 'success',
@@ -402,6 +411,29 @@ export default function ImportPage({
                     </span>
                   ))}
                 </div>
+
+                {/* Opt-In Global Stats Contribution Toggle (ON by default) */}
+                <label className="mt-4 flex cursor-pointer items-start gap-2.5 rounded-lg border border-white/10 bg-[#090b12]/90 px-3.5 py-3 text-xs select-none transition hover:border-[#2ee6ff]/40">
+                  <input
+                    type="checkbox"
+                    checked={contributeGlobal}
+                    onChange={(e) => {
+                      const next = e.target.checked;
+                      setContributeGlobal(next);
+                      setContributePreference(next);
+                    }}
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded accent-[#f5c451]"
+                  />
+                  <div className="space-y-0.5">
+                    <div className="flex items-center gap-1.5 font-semibold text-white">
+                      <Globe2 className="h-3.5 w-3.5 text-[#2ee6ff]" />
+                      Contribute anonymized pulls to Global Stats
+                    </div>
+                    <p className="text-[11px] leading-relaxed text-slate-400">
+                      Shares only banner, item, timestamp &amp; deduplicated hash so the community can track live drop rates. No account ID, email, or IP is stored. Uncheck to stay 100% local.
+                    </p>
+                  </div>
+                </label>
 
                 <div className="mt-4 flex justify-end gap-2">
                   <button

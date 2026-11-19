@@ -3,7 +3,9 @@ import {
   LayoutDashboard,
   Download,
   History,
+  Globe2,
   Settings,
+  ShieldCheck,
   Menu,
   X,
   UserCircle2,
@@ -14,11 +16,14 @@ import {
 } from 'lucide-react';
 import Link from './Link.jsx';
 
+const STAFF_EMAILS = new Set(['masigning@gmail.com']);
+
 const NAV_ITEMS = [
   { href: '/', code: '01', label: 'Pull Counter', icon: LayoutDashboard },
   { href: '/import', code: '02', label: 'Zero-Install Import', icon: Download, badge: 'PKTMON' },
   { href: '/history', code: '03', label: 'Pull Ledger', icon: History },
-  { href: '/settings', code: '04', label: 'Profiles & Sync', icon: Settings },
+  { href: '/stats', code: '04', label: 'Global Stats', icon: Globe2 },
+  { href: '/settings', code: '05', label: 'Profiles & Sync', icon: Settings },
 ];
 
 export default function Sidebar({
@@ -156,6 +161,24 @@ export default function Sidebar({
 
       {/* Google Drive Sync Module */}
       <div className="space-y-2.5 pt-4">
+        {driveSync?.signedIn &&
+          STAFF_EMAILS.has(String(driveSync.email || '').toLowerCase()) && (
+            <Link
+              href="/staff"
+              onClick={closeMobileIfOpen}
+              className={`flex w-full items-center justify-between rounded-lg border px-3 py-2 font-mono text-[11px] font-bold uppercase tracking-wider transition ${
+                pathname === '/staff'
+                  ? 'border-emerald-400/50 bg-emerald-500/16 text-emerald-200'
+                  : 'border-white/10 bg-[#121522] text-emerald-300/90 hover:border-emerald-400/40 hover:bg-emerald-500/10'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Staff Telemetry
+              </span>
+              <span className="text-[9px] text-emerald-400/80">OPS</span>
+            </Link>
+          )}
         {driveSync?.signedIn ? (
           <div className="rounded-lg border border-emerald-400/30 bg-emerald-500/[0.07] p-3 text-xs">
             <div className="flex items-center justify-between gap-2">

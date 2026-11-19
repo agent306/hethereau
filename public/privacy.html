@@ -185,14 +185,25 @@
           data for advertising, analytics, profiling, or AI/ML model training.
         </p>
 
-        <h2>4. Local Import Script</h2>
+        <h2>4. Optional Anonymized Global Statistics</h2>
+        <p>
+          Before importing pull history, you may choose whether to contribute anonymized pull
+          statistics to Hethereau&apos;s community Global Stats (enabled by default; uncheck the box
+          before importing to remain 100% local with zero network requests). When opted in, only
+          deduplicated record hashes, banner/item IDs, timestamps, and an anonymous random browser
+          contributor ID are transmitted to Cloudflare Workers &amp; Durable Objects. No Google
+          account email, game UID, or raw IP address is stored (rate limiting uses an irreversible
+          daily-rotating salted hash).
+        </p>
+
+        <h2>5. Local Import Script</h2>
         <p>
           The optional Windows PowerShell import script (<code>/import-nte.ps1</code>) runs locally
           on your machine to decode pull history into sanitized JSON on your clipboard. It removes
           network addresses and session identifiers before export and never uploads data automatically.
         </p>
 
-        <h2>5. Data Retention &amp; Deletion</h2>
+        <h2>6. Data Retention &amp; Deletion</h2>
         <ul>
           <li>
             <strong>Local browser data:</strong> You can clear any profile&apos;s pulls at any time from
@@ -208,14 +219,14 @@
           </li>
         </ul>
 
-        <h2>6. Hosting &amp; Third-Party Infrastructure</h2>
+        <h2>7. Hosting &amp; Third-Party Infrastructure</h2>
         <p>
           Hethereau is served as a static website via Cloudflare Pages, which may process standard
           HTTP request logs (such as IP address and requested asset path) according to Cloudflare&apos;s
           privacy policy. Fonts are loaded from Google Fonts.
         </p>
 
-        <h2>7. Source Code &amp; Contact</h2>
+        <h2>8. Source Code &amp; Contact</h2>
         <p>
           Hethereau is open source. You can inspect the complete source code or report privacy
           questions via GitHub Issues at
