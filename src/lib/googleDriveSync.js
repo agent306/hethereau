@@ -15,7 +15,10 @@ const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
 let gisLoadPromise = null;
 
 export function getGoogleClientId() {
-  return (import.meta.env?.VITE_GOOGLE_CLIENT_ID || '').trim();
+  const id = typeof import.meta !== 'undefined' && import.meta.env
+    ? import.meta.env.VITE_GOOGLE_CLIENT_ID
+    : '';
+  return (id || '').trim();
 }
 
 export function isDriveSyncConfigured() {
