@@ -68,12 +68,53 @@ function PosterImg({ src, fallback, alt, className }) {
 
 const CATEGORY_LABELS = {
   banner: 'Limited Board',
+  arc: 'Arc Research',
   mystery_box: 'Mystery Box',
   event: 'In-Game Event',
   login: 'Login Event',
   shop: 'Shop Offer',
   community: 'Community',
 };
+
+function mergeTimelineEvents(curated, autoEvents, patchVersion) {
+  const verNum = Number.parseFloat(patchVersion);
+  const autoList = Array.isArray(autoEvents) ? autoEvents : [];
+
+  // When Perfect World publishes a newer patch (e.g. V1.6+), automatically roll the calendar forward
+  if (Number.isFinite(verNum) && verNum > 1.5 && autoList.length > 0) {
+    return [...autoList].sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+  }
+
+  const result = [...curated];
+  const existingKeys = curated.map((e) => e.title.toLowerCase());
+  for (const auto of autoList) {
+    const low = String(auto.title || '').toLowerCase();
+    // Skip duplicates already represented by a richer curated card
+    const alreadyCovered = existingKeys.some((k) => {
+      if (k === low) return true;
+      for (const kw of [
+        'elyms',
+        'shinku',
+        'exe',
+        'chaos',
+        'offline equations',
+        'forsaken path',
+        'open roads ahead',
+        'circle gifts',
+        'city logistics',
+        "hunter's crucible",
+        'y2k mystique',
+      ]) {
+        if (k.includes(kw) && low.includes(kw)) return true;
+      }
+      return false;
+    });
+    if (!alreadyCovered) {
+      result.push(auto);
+    }
+  }
+  return result.sort((a, b) => Date.parse(a.start) - Date.parse(b.start));
+}
 
 export default function TimelinePage({ catalog }) {
   const [nowMs, setNowMs] = useState(() => Date.now());
@@ -154,11 +195,71 @@ export default function TimelinePage({ catalog }) {
     return bannerArchive.filter((b) => b.status === archiveFilter);
   }, [bannerArchive, archiveFilter]);
 
-  // Gantt chart window: Nov 1, 2026 -> Dec 28, 2026 (covers full Version 1.5!)
+  const livePosters = officialFeed?.officialPosters || null;
+  const activePatchVersion = officialFeed?.patchNotes?.version || '1.5';
+  const activePatchTitle =
+    officialFeed?.patchNotes?.title || 'Version 1.5 [Once Upon a Glitched Call] Patch Notes';
+  const activePatchUrl =
+    officialFeed?.patchNotes?.url ||
+    'https://nte.perfectworld.com/en/article/news/gamenews/20261109/264948.html';
+
+  // Merge curated baseline events with live auto-parsed events from nte.perfectworld.com Patch Notes
+  const timelineEvents = useMemo(
+    () =>
+      mergeTimelineEvents(
+        OFFICIAL_TIMELINE_EVENTS,
+        officialFeed?.autoEvents || [],
+        officialFeed?.patchNotes?.version
+      ),
+    [officialFeed]
+  );
+
+  // If a newer game patch (e.g. V1.6+) arrives before static banner occurrences are updated,
+  // auto-populate hero cards from the official Patch Notes banner entries so the section never goes blank.
+  const heroBanners = useMemo(() => {
+    const known = [...activeBanners, ...upcomingBanners];
+    if (known.length > 0) return known;
+    return timelineEvents
+      .filter((ev) => ev.category === 'banner')
+      .map((ev) => {
+        const startMs = Date.parse(ev.start);
+        const endMs = Date.parse(ev.end);
+        const status = nowMs >= startMs && nowMs <= endMs ? 'active' : 'upcoming';
+        return {
+          occurrence_id: ev.id,
+          source_id: ev.sourceId || ev.id,
+          version: activePatchVersion,
+          runNumber: /rerun/i.test(ev.title) ? 2 : 1,
+          status,
+          startMs,
+          endMs,
+          title: ev.title,
+          charId: ev.charId || null,
+          charName: ev.subtitle || 'Featured Limited S-Class',
+          arcBanner: '',
+          accent: ev.color || '#f5c451',
+          rateUpA: [],
+          cosmetics: ['Auto-synced from Official Patch Notes'],
+        };
+      })
+      .filter((b) => Number.isFinite(b.endMs) && nowMs <= b.endMs);
+  }, [activeBanners, upcomingBanners, timelineEvents, nowMs, activePatchVersion]);
+
+  const activeSelectedEvent = useMemo(
+    () => timelineEvents.find((e) => e.id === selectedEvent?.id) || timelineEvents[0] || null,
+    [timelineEvents, selectedEvent]
+  );
+
+  // Dynamically span the Gantt calendar across all active/upcoming official events
   const ganttBounds = useMemo(() => {
-    const start = Date.parse('2026-11-01T00:00:00+08:00');
-    const end = Date.parse('2026-12-28T00:00:00+08:00');
-    const span = end - start;
+    const starts = timelineEvents.map((e) => Date.parse(e.start)).filter(Number.isFinite);
+    const ends = timelineEvents.map((e) => Date.parse(e.end)).filter(Number.isFinite);
+    const minStart = starts.length ? Math.min(...starts) : Date.parse('2026-11-01T00:00:00+08:00');
+    const maxEnd = ends.length ? Math.max(...ends) : Date.parse('2026-12-28T00:00:00+08:00');
+    // Pad by ~3 days on each side cleanly
+    const start = minStart - 3 * 86400 * 1000;
+    const end = maxEnd + 4 * 86400 * 1000;
+    const span = Math.max(7 * 86400 * 1000, end - start);
     const weeks = [];
     for (let t = start; t < end; t += 7 * 86400 * 1000) {
       weeks.push({
@@ -169,7 +270,7 @@ export default function TimelinePage({ catalog }) {
     }
     const nowPct = Math.max(0, Math.min(100, ((nowMs - start) / span) * 100));
     return { start, end, span, weeks, nowPct };
-  }, [nowMs]);
+  }, [timelineEvents, nowMs]);
 
   return (
     <div className="space-y-7">
@@ -178,23 +279,24 @@ export default function TimelinePage({ catalog }) {
         <div>
           <div className="mb-1 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-widest uppercase text-[#f5c451]">
             <span className="inline-block h-1.5 w-1.5 rotate-45 bg-[#2ee6ff]" />
-            Version 1.5 // Once Upon a Glitched Call
+            Version {activePatchVersion} // Auto-Synced from Official NTE Channels
           </div>
           <h1 className="font-display text-3xl font-bold tracking-wide uppercase text-white sm:text-4xl">
             Banners &amp; Events Timeline
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Live Scarborough Fair countdowns, official V1.5 event calendar, and complete banner history
+            Live Scarborough Fair countdowns, official V{activePatchVersion} event calendar, and complete banner history
           </p>
         </div>
         <a
-          href="https://nte.perfectworld.com/en/article/news/gamenews/20261109/264948.html"
+          href={activePatchUrl}
           target="_blank"
           rel="noopener noreferrer"
+          title={activePatchTitle}
           className="nte-cut-btn inline-flex items-center gap-2 border border-[#f5c451]/40 bg-[#f5c451]/12 px-4 py-2 font-mono text-xs font-bold uppercase tracking-wider text-[#fde68a] transition hover:bg-[#f5c451]/22"
         >
           <Newspaper className="h-3.5 w-3.5" />
-          V1.5 Official Patch Notes
+          V{activePatchVersion} Official Patch Notes
           <ExternalLink className="h-3 w-3" />
         </a>
       </div>
@@ -212,9 +314,9 @@ export default function TimelinePage({ catalog }) {
         </div>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          {[...activeBanners, ...upcomingBanners].map((b) => {
+          {heroBanners.map((b) => {
             const isLive = b.status === 'active';
-            const splash = getBannerSplash(b.source_id);
+            const splash = getBannerSplash(b.source_id, livePosters);
             const fallback = b.charId ? `/avatars/${b.charId}.png` : undefined;
             const rateUpAItems = (b.rateUpA || [])
               .map((id) => catalog?.resolveItem(id))
@@ -344,7 +446,7 @@ export default function TimelinePage({ catalog }) {
             <div className="flex items-center gap-2">
               <Calendar className="h-4 w-4 text-[#2ee6ff]" />
               <h2 className="font-display text-lg font-bold uppercase tracking-wide text-white">
-                Version 1.5 Event Timeline
+                Version {activePatchVersion} Event Timeline
               </h2>
             </div>
             <p className="mt-0.5 text-xs text-slate-400">
@@ -395,7 +497,7 @@ export default function TimelinePage({ catalog }) {
                 </span>
               </div>
 
-              {OFFICIAL_TIMELINE_EVENTS.map((ev) => {
+              {timelineEvents.map((ev) => {
                 const sMs = Date.parse(ev.start);
                 const eMs = Date.parse(ev.end);
                 const leftPct = Math.max(
@@ -407,7 +509,7 @@ export default function TimelinePage({ catalog }) {
                   ((eMs - ganttBounds.start) / ganttBounds.span) * 100
                 );
                 const widthPct = Math.max(4, rightPct - leftPct);
-                const isSelected = selectedEvent?.id === ev.id;
+                const isSelected = activeSelectedEvent?.id === ev.id;
                 const isLive = nowMs >= sMs && nowMs <= eMs;
                 const isUpcoming = nowMs < sMs;
 
@@ -454,30 +556,30 @@ export default function TimelinePage({ catalog }) {
         </div>
 
         {/* Selected Event Inspector */}
-        {selectedEvent && (
+        {activeSelectedEvent && (
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-white/10 bg-[#090b12] px-4 py-3">
             <div className="space-y-0.5">
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className="rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-[#08090f]"
-                  style={{ backgroundColor: selectedEvent.color }}
+                  style={{ backgroundColor: activeSelectedEvent.color }}
                 >
-                  {CATEGORY_LABELS[selectedEvent.category] || selectedEvent.category}
+                  {CATEGORY_LABELS[activeSelectedEvent.category] || activeSelectedEvent.category}
                 </span>
                 <span className="font-display text-sm font-bold text-white">
-                  {selectedEvent.title}
+                  {activeSelectedEvent.title}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">{selectedEvent.subtitle}</p>
+              <p className="text-xs text-slate-400">{activeSelectedEvent.subtitle}</p>
             </div>
             <div className="flex items-center gap-3 font-mono text-xs">
               <span className="text-slate-400">
-                {formatShortDate(Date.parse(selectedEvent.start))} &rarr;{' '}
-                {formatShortDate(Date.parse(selectedEvent.end))}
+                {formatShortDate(Date.parse(activeSelectedEvent.start))} &rarr;{' '}
+                {formatShortDate(Date.parse(activeSelectedEvent.end))}
               </span>
-              {selectedEvent.url && (
+              {activeSelectedEvent.url && (
                 <a
-                  href={selectedEvent.url}
+                  href={activeSelectedEvent.url}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 font-semibold text-[#2ee6ff] hover:underline"
@@ -574,7 +676,7 @@ export default function TimelinePage({ catalog }) {
             <div className="flex items-center gap-2">
               <Dices className="h-4 w-4 text-[#f5c451]" />
               <h2 className="font-display text-base font-bold uppercase tracking-wide text-white">
-                Scarborough Fair Banner Archive (V1.0 – V1.5)
+                Scarborough Fair Banner Archive (V1.0 – V{activePatchVersion})
               </h2>
             </div>
             <p className="mt-0.5 text-xs text-slate-400">
@@ -608,7 +710,7 @@ export default function TimelinePage({ catalog }) {
             >
               <div className="relative h-28 overflow-hidden">
                 <PosterImg
-                  src={b.charId ? getCharacterPoster(b.charId) : getBannerSplash(b.source_id)}
+                  src={b.charId ? getCharacterPoster(b.charId, livePosters) : getBannerSplash(b.source_id, livePosters)}
                   fallback={b.charId ? `/avatars/${b.charId}.png` : undefined}
                   alt={b.charName || b.title}
                   className="h-full w-full object-cover object-top opacity-75 transition duration-500 group-hover:scale-105"

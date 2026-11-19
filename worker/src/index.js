@@ -654,22 +654,133 @@ async function handleStaffStats(request, env) {
   );
 }
 
-async function handleOfficialFeed(request, ctx) {
-  const cacheKey = new Request(new URL("/api/official/feed", request.url).toString());
-  const cached = await caches.default.match(cacheKey);
-  if (cached) {
-    const body = await cached.text();
-    return new Response(body, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/json; charset=utf-8",
-        "Cache-Control": "public, max-age=1800",
-        "X-Feed-Cache": "HIT",
-        ...corsHeaders(request),
-      },
+function parseOfficialPatchDate(str, baseYear, fallbackHour, fallbackMin) {
+  const MONTHS = {
+    jan: 1, feb: 2, mar: 3, apr: 4, may: 5, jun: 6,
+    jul: 7, aug: 8, sep: 9, oct: 10, nov: 11, dec: 12,
+  };
+  const m = String(str || "").match(
+    /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)[a-z]*\.?\s+(\d{1,2})(?:,?\s*(\d{4}))?(?:[^\d]*?(\d{1,2}):(\d{2}))?/i
+  );
+  if (!m) return null;
+  const monthNum = MONTHS[m[1].slice(0, 3).toLowerCase()];
+  if (!monthNum) return null;
+  const dayNum = Number(m[2]);
+  const yr = m[3] ? Number(m[3]) : baseYear;
+  const hh = m[4] !== undefined ? Number(m[4]) : fallbackHour;
+  const mm = m[5] !== undefined ? Number(m[5]) : fallbackMin;
+  return {
+    year: yr,
+    month: monthNum,
+    day: dayNum,
+    hh,
+    mm,
+    explicitYear: Boolean(m[3]),
+    toIso(overrideYear) {
+      const y = overrideYear ?? this.year;
+      return `${y}-${String(this.month).padStart(2, "0")}-${String(this.day).padStart(2, "0")}T${String(this.hh).padStart(2, "0")}:${String(this.mm).padStart(2, "0")}:00+08:00`;
+    },
+  };
+}
+
+function classifyOfficialEvent(title) {
+  const t = title.toLowerCase();
+  if (/limited\s+s-class\s+character|limited\s+board/.test(t)) {
+    return { category: "banner", color: t.includes("rerun") ? "#fb7185" : "#f5c451" };
+  }
+  if (/limited\s+s-class\s+arc|arc\s+research/.test(t)) {
+    return { category: "arc", color: "#c084fc" };
+  }
+  if (/mystery\s+box/.test(t)) {
+    return { category: "mystery_box", color: "#ec4899" };
+  }
+  if (/login\s+event|check-in/.test(t)) {
+    return { category: "login", color: "#34d399" };
+  }
+  if (/outfit|shop|discount|bounty\s+guide/.test(t)) {
+    return { category: "shop", color: "#a855f7" };
+  }
+  return { category: "event", color: "#2ee6ff" };
+}
+
+function parseOfficialPatchNotesHtml(html, patchUrl, publishedDate) {
+  const baseYear = Number(String(publishedDate || "").slice(0, 4)) || new Date().getUTCFullYear();
+  const text = String(html || "")
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/<[^>]+>/g, "\n")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\r/g, "");
+  const lines = text
+    .split("\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+
+  const events = [];
+  const seenTitles = new Set();
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    if (!/^(Availability|Duration|Discount Period)\s*:/i.test(line)) continue;
+    const range = line.replace(/^(Availability|Duration|Discount Period)\s*:\s*/i, "");
+    const parts = range.split(/\s*[–—-]\s*/);
+    if (parts.length < 2) continue;
+
+    const startObj = parseOfficialPatchDate(parts[0], baseYear, 11, 0);
+    const endObj = parseOfficialPatchDate(parts[1], baseYear, 5, 59);
+    if (!startObj || !endObj) continue;
+
+    // Handle Dec -> Jan year rollover cleanly when end year is omitted
+    let endYear = endObj.year;
+    if (!endObj.explicitYear && endObj.month < startObj.month) {
+      endYear = startObj.year + 1;
+    }
+
+    let title = "";
+    for (let back = 1; back <= 3 && i - back >= 0; back++) {
+      const prev = lines[i - back];
+      if (/^[●•\d]/.test(prev) || /Event|Board|Character|Arc|Outfit|Mystery Box|Guide/i.test(prev)) {
+        title = prev.replace(/^[●•\d.\s]+/, "").trim();
+        break;
+      }
+    }
+    if (!title || title.length > 100) continue;
+    const normKey = title.toLowerCase();
+    if (seenTitles.has(normKey)) continue;
+    seenTitles.add(normKey);
+
+    // Grab optional short description from the next line if it starts with Details:/Board Details:
+    let subtitle = "";
+    const nextLine = lines[i + 1] || "";
+    if (/^(Details|Board Details)\s*:/i.test(nextLine)) {
+      subtitle = nextLine.replace(/^(Details|Board Details)\s*:\s*/i, "").slice(0, 160);
+    }
+
+    const { category, color } = classifyOfficialEvent(title);
+    events.push({
+      id: `auto_${events.length}_${normKey.replace(/[^a-z0-9]+/g, "_").slice(0, 32)}`,
+      title,
+      subtitle: subtitle || `Official event from ${publishedDate || "latest"} Patch Notes`,
+      category,
+      color,
+      start: startObj.toIso(startObj.year),
+      end: endObj.toIso(endYear),
+      url: patchUrl,
+      autoDiscovered: true,
     });
   }
 
+  return events;
+}
+
+const OFFICIAL_FEED_TTL_MS = 30 * 60 * 1000;
+const OFFICIAL_FEED_MIN_REFRESH_MS = 60 * 1000;
+let memOfficialFeed = { payload: null, updatedAt: 0 };
+
+async function fetchFreshOfficialFeed() {
   function extractBalancedObject(src, keyToken) {
     const idx = src.indexOf(keyToken);
     if (idx < 0) return null;
@@ -716,85 +827,214 @@ async function handleOfficialFeed(request, ctx) {
       channel: String(it.channelName || "news"),
     }));
 
+  let newsUrl = "https://nte.perfectworld.com/include/newsData20260112.js";
+  let swiperUrl =
+    "https://www.perfectworld.com/public/commonData/gamesData/gameSwiper/nte-gameSwiper.js";
+  let officialPosters = {};
   let news = { latest: [], gamenews: [], gameevent: [], gamebroad: [] };
   let carousel = [];
+  let patchNotes = null;
+  let autoEvents = [];
 
-  try {
-    const [newsRes, swiperRes] = await Promise.all([
-      fetch("https://nte.perfectworld.com/include/newsData20260112.js", {
-        headers: { "User-Agent": "Hethereau-Tracker/1.0" },
-      }),
-      fetch(
-        "https://www.perfectworld.com/public/commonData/gamesData/gameSwiper/nte-gameSwiper.js",
-        { headers: { "User-Agent": "Hethereau-Tracker/1.0" } }
-      ),
-    ]);
+  const ua = { "User-Agent": "Hethereau-Tracker/1.0" };
 
-    if (newsRes.ok) {
-      const txt = await newsRes.text();
-      const enRaw = extractBalancedObject(txt, '"en"');
-      if (enRaw) {
-        const enObj = JSON.parse(stripTrailingCommas(enRaw));
-        news = {
-          latest: normalizeNews(enObj.news),
-          gamenews: normalizeNews(enObj.gamenews),
-          gameevent: normalizeNews(enObj.gameevent),
-          gamebroad: normalizeNews(enObj.gamebroad),
-        };
-      }
+  // 1) Auto-discover live feed scripts & official character posters from nte.perfectworld.com/en/main.html
+  const mainRes = await fetch("https://nte.perfectworld.com/en/main.html", { headers: ua });
+  if (mainRes.ok) {
+    const mainHtml = await mainRes.text();
+    const foundNews = mainHtml.match(
+      /https?:\/\/nte\.perfectworld\.com\/include\/newsData[^"'\s]+\.js/i
+    );
+    if (foundNews?.[0]) newsUrl = foundNews[0];
+
+    const foundSwiper = mainHtml.match(
+      /https?:\/\/[^"'\s]+nte-gameSwiper[^"'\s]*\.js/i
+    );
+    if (foundSwiper?.[0]) swiperUrl = foundSwiper[0];
+
+    const posterMatches = mainHtml.matchAll(
+      /https?:\/\/nte\.perfectworld\.com\/public\/m\/images\/[^"'\s]+\/role-poster-([a-z0-9_-]+)\.png/gi
+    );
+    for (const m of posterMatches) {
+      officialPosters[m[1].toLowerCase()] = m[0];
     }
+  }
 
-    if (swiperRes.ok) {
-      const swTxt = await swiperRes.text();
-      const clean = stripTrailingCommas(
-        swTxt.replace(/^\s*var\s+nte_data_data\s*=\s*/, "").replace(/;\s*$/, "")
+  // 2) Fetch official newsData + promo carousel in parallel
+  const [newsRes, swiperRes] = await Promise.all([
+    fetch(newsUrl, { headers: ua }),
+    fetch(swiperUrl, { headers: ua }),
+  ]);
+
+  if (newsRes.ok) {
+    const txt = await newsRes.text();
+    const enRaw = extractBalancedObject(txt, '"en"');
+    if (enRaw) {
+      const enObj = JSON.parse(stripTrailingCommas(enRaw));
+      news = {
+        latest: normalizeNews(enObj.news),
+        gamenews: normalizeNews(enObj.gamenews),
+        gameevent: normalizeNews(enObj.gameevent),
+        gamebroad: normalizeNews(enObj.gamebroad),
+      };
+    }
+  }
+
+  if (swiperRes.ok) {
+    const swTxt = await swiperRes.text();
+    const clean = stripTrailingCommas(
+      swTxt.replace(/^\s*var\s+nte_data_data\s*=\s*/, "").replace(/;\s*$/, "")
+    );
+    const swObj = JSON.parse(clean);
+    const list = Array.isArray(swObj.lb1_en) ? swObj.lb1_en : [];
+    carousel = list
+      .filter((x) => x && x.bigpic)
+      .map((x) => ({
+        image: String(x.bigpic),
+        link: String(x.link || x.mlink || "https://nte.perfectworld.com/en/main.html"),
+        title: String(x.title || ""),
+      }));
+  }
+
+  // 3) Auto-fetch & parse the latest official Patch Notes for dynamic version events & dates
+  const latestPatch = (news.gamenews || []).find((n) =>
+    /patch\s*notes|version\s+\d+\.\d+|ver\.\s*\d+\.\d+/i.test(n.title)
+  );
+  if (latestPatch?.url) {
+    const verMatch = latestPatch.title.match(/(?:Version|Ver\.)\s*(\d+\.\d+)/i);
+    patchNotes = {
+      version: verMatch ? verMatch[1] : "",
+      title: latestPatch.title,
+      url: latestPatch.url,
+      time: latestPatch.time,
+    };
+    const patchRes = await fetch(latestPatch.url, { headers: ua });
+    if (patchRes.ok) {
+      const patchHtml = await patchRes.text();
+      autoEvents = parseOfficialPatchNotesHtml(
+        patchHtml,
+        latestPatch.url,
+        latestPatch.time
       );
-      const swObj = JSON.parse(clean);
-      const list = Array.isArray(swObj.lb1_en) ? swObj.lb1_en : [];
-      carousel = list
-        .filter((x) => x && x.bigpic)
-        .map((x) => ({
-          image: String(x.bigpic),
-          link: String(x.link || x.mlink || "https://nte.perfectworld.com/en/main.html"),
-          title: String(x.title || ""),
-        }));
+    }
+  }
+
+  const hasContent =
+    Object.keys(officialPosters).length > 0 ||
+    news.gamenews.length > 0 ||
+    carousel.length > 0;
+
+  return {
+    hasContent,
+    payload: JSON.stringify({
+      fetchedAt: new Date().toISOString(),
+      refreshIntervalMinutes: 30,
+      source: "nte.perfectworld.com",
+      patchNotes,
+      officialPosters,
+      autoEvents,
+      news,
+      carousel,
+    }),
+  };
+}
+
+async function refreshOfficialFeedSnapshot(env) {
+  const staffStub = env.STAFF_TELEMETRY_DO.getByName("staff:global");
+  try {
+    const fresh = await fetchFreshOfficialFeed();
+    if (fresh.hasContent) {
+      const now = Date.now();
+      memOfficialFeed = { payload: fresh.payload, updatedAt: now };
+      await staffStub.setOfficialFeedCache(fresh.payload);
+      return { payload: fresh.payload, cacheStatus: "REFRESH" };
     }
   } catch (err) {
     console.error(JSON.stringify({ level: "warn", scope: "official_feed", error: String(err) }));
   }
 
-  const payload = JSON.stringify({
-    fetchedAt: new Date().toISOString(),
-    source: "nte.perfectworld.com",
-    news,
-    carousel,
-  });
+  // Fallback to last known good snapshot from Durable Object SQLite if Perfect World is briefly unreachable
+  const existing = await staffStub.getOfficialFeedCache();
+  if (existing?.payload) {
+    memOfficialFeed = { payload: existing.payload, updatedAt: existing.updatedAt };
+    return { payload: existing.payload, cacheStatus: "STALE-FALLBACK" };
+  }
 
-  ctx.waitUntil(
-    caches.default.put(
-      cacheKey,
-      new Response(payload, {
-        status: 200,
-        headers: {
-          "Content-Type": "application/json; charset=utf-8",
-          "Cache-Control": "public, max-age=1800",
-        },
-      })
-    )
-  );
+  return {
+    payload: JSON.stringify({
+      fetchedAt: new Date().toISOString(),
+      refreshIntervalMinutes: 30,
+      source: "nte.perfectworld.com",
+      patchNotes: null,
+      officialPosters: {},
+      autoEvents: [],
+      news: { latest: [], gamenews: [], gameevent: [], gamebroad: [] },
+      carousel: [],
+    }),
+    cacheStatus: "EMPTY",
+  };
+}
 
-  return new Response(payload, {
+async function handleOfficialFeed(request, env, ctx) {
+  const url = new URL(request.url);
+  const wantFresh = url.searchParams.get("fresh") === "1";
+  const now = Date.now();
+
+  // 1) Fast path: warm isolate memory cache (works reliably on both workers.dev and custom domains)
+  if (
+    memOfficialFeed.payload &&
+    now - memOfficialFeed.updatedAt < OFFICIAL_FEED_TTL_MS &&
+    (!wantFresh || now - memOfficialFeed.updatedAt < OFFICIAL_FEED_MIN_REFRESH_MS)
+  ) {
+    return new Response(memOfficialFeed.payload, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=1800",
+        "X-Feed-Cache": "MEM-HIT",
+        ...corsHeaders(request),
+      },
+    });
+  }
+
+  // 2) Persistent Durable Object SQLite snapshot (survives cold starts & upstream outages)
+  const staffStub = env.STAFF_TELEMETRY_DO.getByName("staff:global");
+  const stored = await staffStub.getOfficialFeedCache();
+  if (
+    stored?.payload &&
+    now - stored.updatedAt < OFFICIAL_FEED_TTL_MS &&
+    (!wantFresh || now - stored.updatedAt < OFFICIAL_FEED_MIN_REFRESH_MS)
+  ) {
+    memOfficialFeed = { payload: stored.payload, updatedAt: stored.updatedAt };
+    return new Response(stored.payload, {
+      status: 200,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "public, max-age=1800",
+        "X-Feed-Cache": "DO-HIT",
+        ...corsHeaders(request),
+      },
+    });
+  }
+
+  // 3) Refresh live from official nte.perfectworld.com channels
+  const refreshed = await refreshOfficialFeedSnapshot(env);
+  return new Response(refreshed.payload, {
     status: 200,
     headers: {
       "Content-Type": "application/json; charset=utf-8",
       "Cache-Control": "public, max-age=1800",
-      "X-Feed-Cache": "MISS",
+      "X-Feed-Cache": refreshed.cacheStatus,
       ...corsHeaders(request),
     },
   });
 }
 
 export default {
+  async scheduled(_controller, env, ctx) {
+    ctx.waitUntil(refreshOfficialFeedSnapshot(env));
+  },
+
   async fetch(request, env, ctx) {
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders(request) });
@@ -806,7 +1046,7 @@ export default {
         return jsonResponse(request, { ok: true, service: "hethereau-stats" });
       }
       if (request.method === "GET" && url.pathname === "/api/official/feed") {
-        return await handleOfficialFeed(request, ctx);
+        return await handleOfficialFeed(request, env, ctx);
       }
       if (request.method === "GET" && url.pathname === "/api/stats/global") {
         return await handleGlobalStats(request, env, ctx);

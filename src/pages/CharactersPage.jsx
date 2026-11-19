@@ -1,9 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Search, Sparkles, CheckCircle2, Users, Plus, Minus } from 'lucide-react';
 import { getCharacterPoster } from '../lib/officialMedia.js';
+import { fetchOfficialFeed } from '../lib/statsApi.js';
 
-function CharacterCardImage({ charId, name }) {
-  const poster = getCharacterPoster(charId);
+function CharacterCardImage({ charId, name, livePosters }) {
+  const poster = getCharacterPoster(charId, livePosters);
   const fallback = `/avatars/${charId}.png`;
   const [src, setSrc] = useState(poster);
 
@@ -34,6 +35,19 @@ export default function CharactersPage({
   const [rankFilter, setRankFilter] = useState('all'); // 'all' | 'S' | 'A'
   const [ownedFilter, setOwnedFilter] = useState('all'); // 'all' | 'owned' | 'unowned'
   const [query, setQuery] = useState('');
+  const [livePosters, setLivePosters] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    fetchOfficialFeed()
+      .then((res) => {
+        if (mounted && res?.officialPosters) setLivePosters(res.officialPosters);
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   // Auto-count pulled copies straight from the user's pull history
   const pulledCounts = useMemo(() => {
@@ -209,7 +223,7 @@ export default function CharactersPage({
                 }`}
               >
                 <div className="relative aspect-[3/4] overflow-hidden bg-[#090b12]">
-                  <CharacterCardImage charId={ch.id} name={ch.name} />
+                  <CharacterCardImage charId={ch.id} name={ch.name} livePosters={livePosters} />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0b0d15] via-transparent to-black/25" />
 
                   {/* Rarity Pill */}

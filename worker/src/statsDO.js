@@ -414,6 +414,12 @@ export class StaffTelemetryDO extends DurableObject {
           submissions INTEGER NOT NULL DEFAULT 0,
           accepted_pulls INTEGER NOT NULL DEFAULT 0
         );
+
+        CREATE TABLE IF NOT EXISTS official_feed_cache (
+          cache_key TEXT PRIMARY KEY,
+          payload TEXT NOT NULL,
+          updated_at INTEGER NOT NULL
+        );
       `);
     });
   }
@@ -757,5 +763,34 @@ export class StaffTelemetryDO extends DurableObject {
       recentBlocked,
       topContributors,
     };
+  }
+
+  async getOfficialFeedCache(cacheKey = "default") {
+    const rows = this.ctx.storage.sql
+      .exec(
+        `SELECT payload, updated_at FROM official_feed_cache WHERE cache_key = ?`,
+        String(cacheKey || "default")
+      )
+      .toArray();
+    if (!rows.length) return null;
+    return {
+      payload: String(rows[0].payload || ""),
+      updatedAt: Number(rows[0].updated_at || 0),
+    };
+  }
+
+  async setOfficialFeedCache(payload, cacheKey = "default") {
+    const now = Date.now();
+    this.ctx.storage.sql.exec(
+      `INSERT INTO official_feed_cache (cache_key, payload, updated_at)
+       VALUES (?, ?, ?)
+       ON CONFLICT(cache_key) DO UPDATE SET
+         payload = excluded.payload,
+         updated_at = excluded.updated_at`,
+      String(cacheKey || "default"),
+      String(payload || ""),
+      now
+    );
+    return { ok: true, updatedAt: now };
   }
 }

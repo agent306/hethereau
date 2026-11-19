@@ -20,8 +20,7 @@ export const OFFICIAL_CHARACTER_POSTERS = {
   '1004': 'https://nte.perfectworld.com/public/m/images/main260603/role-poster-an.png', // Lacrimosa
   '1052': 'https://nte.perfectworld.com/public/m/images/main260513/role-poster-xun.png', // Hotori
   '1010': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-nanally.png', // Nanally
-  '1074':
-    'https://raw.githubusercontent.com/Waifus-Grace/NTE_Assets/main/UI/Gacha/Lottery_Img/Exe/YH_UI_Activity_Big_exe3.png', // Exe (V1.5 Phase 2)
+  '1074': '/posters/1074.png', // Exe (self-hosted local poster; auto-upgrades when nte.perfectworld.com publishes role-poster-exe.png)
 
   // Standard S-Class & A-Class Characters
   '1023': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-baicang.png', // Baicang
@@ -32,6 +31,29 @@ export const OFFICIAL_CHARACTER_POSTERS = {
   '1003': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-zaowu.png', // Sakiri
   '1019': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-mint.png', // Mint
   '1073': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-xiaozhi.png', // Chiz
+};
+
+export const CHAR_ID_TO_OFFICIAL_SLUG = {
+  '1090': 'yem',
+  '1057': 'mingyin',
+  '1042': 'heiyu',
+  '1072': 'lingke',
+  '1036': 'canhong',
+  '1075': 'yi',
+  '1076': 'zhen',
+  '1071': 'ka',
+  '1004': 'an',
+  '1052': 'xun',
+  '1010': 'nanally',
+  '1074': 'exe',
+  '1023': 'baicang',
+  '1054': 'dfde',
+  '1039': 'fadiya',
+  '1025': 'hasuoer',
+  '1055': 'jiuyuan',
+  '1003': 'zaowu',
+  '1019': 'mint',
+  '1073': 'xiaozhi',
 };
 
 export const BANNER_FEATURED_META = {
@@ -129,14 +151,19 @@ export const BANNER_FEATURED_META = {
   },
 };
 
-export function getCharacterPoster(charId) {
-  return OFFICIAL_CHARACTER_POSTERS[String(charId)] || `/avatars/${charId}.png`;
+export function getCharacterPoster(charId, liveOfficialPosters = null) {
+  const key = String(charId);
+  const slug = CHAR_ID_TO_OFFICIAL_SLUG[key];
+  if (slug && liveOfficialPosters?.[slug]) {
+    return liveOfficialPosters[slug];
+  }
+  return OFFICIAL_CHARACTER_POSTERS[key] || `/avatars/${key}.png`;
 }
 
-export function getBannerSplash(sourceId) {
+export function getBannerSplash(sourceId, liveOfficialPosters = null) {
   const meta = BANNER_FEATURED_META[sourceId];
   if (meta?.charId) {
-    return getCharacterPoster(meta.charId);
+    return getCharacterPoster(meta.charId, liveOfficialPosters);
   }
   return OFFICIAL_VERSION_KEY_ART;
 }
