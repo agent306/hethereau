@@ -17,11 +17,11 @@ export default function SyncConflictModal({
   const remoteProfiles = Object.keys(remoteState?.profiles || {}).length;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-lg rounded-2xl border border-white/12 bg-[#121728] p-6 shadow-2xl shadow-black/60">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4 backdrop-blur-sm">
+      <div className="nte-panel-gold w-full max-w-lg rounded-xl p-6 shadow-2xl shadow-black/70">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="font-display text-lg font-bold text-white">
+            <h2 className="font-display text-lg font-bold uppercase tracking-wide text-white">
               Sync Conflict Detected
             </h2>
             <p className="mt-1 text-xs text-slate-400">
@@ -38,8 +38,8 @@ export default function SyncConflictModal({
         </div>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-white/10 bg-[#0b0f1c] p-3.5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-cyan-300">
+          <div className="rounded-lg border border-white/10 bg-[#090b12] p-3.5">
+            <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase text-[#2ee6ff]">
               <HardDrive className="h-3.5 w-3.5" />
               This Browser
             </div>
@@ -51,8 +51,8 @@ export default function SyncConflictModal({
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-[#0b0f1c] p-3.5">
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-violet-300">
+          <div className="rounded-lg border border-white/10 bg-[#090b12] p-3.5">
+            <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold uppercase text-[#f5c451]">
               <Cloud className="h-3.5 w-3.5" />
               Google Drive
             </div>
@@ -72,14 +72,14 @@ export default function SyncConflictModal({
           <button
             type="button"
             onClick={onChooseMerge}
-            className="flex w-full items-center justify-between rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-3 text-left text-sm font-bold text-white shadow-lg shadow-violet-600/20 transition hover:brightness-110"
+            className="nte-cut-btn flex w-full items-center justify-between bg-[#f5c451] px-4 py-3 text-left font-display text-sm font-bold uppercase tracking-wider text-[#08090f] shadow-[0_0_24px_rgba(245,196,81,0.28)] transition hover:bg-[#ffd56b]"
           >
             <span className="flex items-center gap-2">
               <GitMerge className="h-4 w-4" />
               Smart Merge Both (Recommended)
             </span>
-            <span className="rounded bg-black/25 px-2 py-0.5 text-[11px] font-medium">
-              Zero data loss
+            <span className="rounded bg-black/15 px-2 py-0.5 font-mono text-[10px] font-bold">
+              ZERO LOSS
             </span>
           </button>
 
@@ -87,14 +87,14 @@ export default function SyncConflictModal({
             <button
               type="button"
               onClick={onChooseRemote}
-              className="rounded-xl border border-white/12 bg-white/5 px-3 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+              className="rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2.5 font-mono text-xs font-semibold text-slate-200 transition hover:bg-white/10"
             >
               Use Google Drive ({remoteCount})
             </button>
             <button
               type="button"
               onClick={onChooseLocal}
-              className="rounded-xl border border-white/12 bg-white/5 px-3 py-2.5 text-xs font-semibold text-slate-200 transition hover:bg-white/10"
+              className="rounded-lg border border-white/12 bg-white/[0.04] px-3 py-2.5 font-mono text-xs font-semibold text-slate-200 transition hover:bg-white/10"
             >
               Use This Browser ({localCount})
             </button>

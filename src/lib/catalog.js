@@ -6,6 +6,7 @@
 export const POOL_DEFINITIONS = {
   monopoly_limited: {
     key: 'monopoly_limited',
+    code: 'BOARD 01',
     title: 'Limited Board',
     subtitle: 'Scarborough Fair · Featured S-Class Characters',
     currency: 'Solid Dice',
@@ -15,11 +16,12 @@ export const POOL_DEFINITIONS = {
     softPityLabel: 'Board Mod (70)',
     has5050: false,
     guaranteeNote: '100% Featured S-Class · No 50/50',
-    accent: '#a855f7',
-    accentSoft: 'rgba(168, 85, 247, 0.16)',
+    accent: '#f5c451',
+    accentSoft: 'rgba(245, 196, 81, 0.16)',
   },
   monopoly_standard: {
     key: 'monopoly_standard',
+    code: 'BOARD 02',
     title: 'Standard Board',
     subtitle: 'Strange Encounters · Permanent Characters',
     currency: 'Fabricated Dice',
@@ -29,11 +31,12 @@ export const POOL_DEFINITIONS = {
     softPityLabel: 'Board Mod (70)',
     has5050: false,
     guaranteeNote: 'Permanent Board · Carries Over',
-    accent: '#38bdf8',
-    accentSoft: 'rgba(56, 189, 248, 0.16)',
+    accent: '#2ee6ff',
+    accentSoft: 'rgba(46, 230, 255, 0.16)',
   },
   fork_lottery: {
     key: 'fork_lottery',
+    code: 'BOARD 03',
     title: 'Arc Research',
     subtitle: 'Miracle Box · Signature Arcs',
     currency: 'Tri-Keys',
@@ -44,11 +47,12 @@ export const POOL_DEFINITIONS = {
     softPityLabel: 'S-Rank Guarantee (60)',
     has5050: true,
     guaranteeNote: '60 S-Rank · 80 Featured Guarantee',
-    accent: '#f59e0b',
-    accentSoft: 'rgba(245, 158, 11, 0.16)',
+    accent: '#c084fc',
+    accentSoft: 'rgba(192, 132, 252, 0.16)',
   },
   mystery_box: {
     key: 'mystery_box',
+    code: 'BOARD 04',
     title: 'Mystery Box',
     subtitle: 'Gashapon · Vehicles & Cosmetics',
     currency: 'Mystery Coins',
@@ -58,8 +62,8 @@ export const POOL_DEFINITIONS = {
     softPityLabel: null,
     has5050: false,
     guaranteeNote: 'Single Pulls · Per-Rotation',
-    accent: '#ec4899',
-    accentSoft: 'rgba(236, 72, 153, 0.16)',
+    accent: '#f472b6',
+    accentSoft: 'rgba(244, 114, 182, 0.16)',
   },
 };
 

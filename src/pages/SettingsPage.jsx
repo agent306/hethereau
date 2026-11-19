@@ -79,8 +79,12 @@ export default function SettingsPage({
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="font-display text-3xl font-bold tracking-tight text-white">
+      <div className="border-b border-white/10 pb-5">
+        <div className="mb-1 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-widest uppercase text-[#f5c451]">
+          <span className="inline-block h-1.5 w-1.5 rotate-45 bg-[#2ee6ff]" />
+          Appraiser Config // Cloud &amp; Local Storage
+        </div>
+        <h1 className="font-display text-3xl font-bold tracking-wide uppercase text-white">
           Profiles &amp; Cloud Sync
         </h1>
         <p className="mt-1 text-sm text-slate-400">
@@ -90,10 +94,10 @@ export default function SettingsPage({
 
       {feedback && (
         <div
-          className={`flex items-center gap-2 rounded-xl border px-4 py-3 text-sm ${
+          className={`flex items-center gap-2 rounded-lg border px-4 py-3 text-sm ${
             feedback.type === 'ok'
-              ? 'border-emerald-400/30 bg-emerald-500/12 text-emerald-200'
-              : 'border-rose-400/30 bg-rose-500/12 text-rose-200'
+              ? 'border-emerald-400/35 bg-emerald-500/12 text-emerald-200'
+              : 'border-rose-400/35 bg-rose-500/12 text-rose-200'
           }`}
         >
           {feedback.type === 'ok' ? (
@@ -105,15 +109,15 @@ export default function SettingsPage({
         </div>
       )}
 
-      {/* Google Drive Sync Card (1-click Paimon.moe UX -- owner configures VITE_GOOGLE_CLIENT_ID once) */}
-      <div className="rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/10 via-[#121728] to-cyan-500/6 p-5 shadow-xl shadow-black/25">
+      {/* Google Drive Sync Card */}
+      <div className="nte-panel-gold rounded-xl p-5">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/20 ring-1 ring-violet-400/35">
-              <Cloud className="h-5 w-5 text-cyan-300" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-[#2ee6ff]/35 bg-[#2ee6ff]/12">
+              <Cloud className="h-5 w-5 text-[#2ee6ff]" />
             </div>
             <div>
-              <h2 className="font-display text-lg font-bold text-white">
+              <h2 className="font-display text-lg font-bold uppercase tracking-wide text-white">
                 Google Drive Sync
               </h2>
               <p className="text-xs text-slate-400">
@@ -123,7 +127,7 @@ export default function SettingsPage({
           </div>
 
           {driveSync.signedIn && (
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-300 ring-1 ring-emerald-400/30">
+            <span className="inline-flex items-center gap-1.5 rounded bg-emerald-500/15 px-3 py-1 font-mono text-[11px] font-bold uppercase text-emerald-300 ring-1 ring-emerald-400/35">
               <CheckCircle2 className="h-3.5 w-3.5" />
               Connected
             </span>
@@ -131,14 +135,14 @@ export default function SettingsPage({
         </div>
 
         {driveSync.error && (
-          <div className="mt-3 flex items-center gap-2 rounded-xl border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-200">
+          <div className="mt-3 flex items-center gap-2 rounded-lg border border-rose-500/35 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-200">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-400" />
             <span>{driveSync.error}</span>
           </div>
         )}
 
         {driveSync.signedIn ? (
-          <div className="mt-4 space-y-3 rounded-xl border border-white/10 bg-[#0b0f1c]/90 p-4">
+          <div className="mt-4 space-y-3 rounded-lg border border-white/10 bg-[#090b12]/90 p-4">
             <div className="flex flex-wrap items-center justify-between gap-2 text-sm">
               <div>
                 <div className="font-semibold text-white">
@@ -158,7 +162,7 @@ export default function SettingsPage({
                   type="button"
                   onClick={onDriveSyncNow}
                   disabled={driveSync.syncing}
-                  className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-3.5 py-2 text-xs font-semibold text-white transition hover:bg-violet-500 disabled:opacity-50"
+                  className="nte-cut-btn inline-flex items-center gap-1.5 bg-[#f5c451] px-3.5 py-2 font-mono text-xs font-bold uppercase text-[#08090f] transition hover:bg-[#ffd56b] disabled:opacity-50"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${driveSync.syncing ? 'animate-spin' : ''}`} />
                   Sync Now
@@ -166,7 +170,7 @@ export default function SettingsPage({
                 <button
                   type="button"
                   onClick={onDriveDisconnect}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-white/12 bg-white/5 px-3.5 py-2 text-xs font-semibold text-slate-300 transition hover:bg-rose-500/15 hover:text-rose-200"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/12 bg-white/[0.04] px-3.5 py-2 font-mono text-xs font-bold uppercase text-slate-300 transition hover:border-rose-400/40 hover:bg-rose-500/15 hover:text-rose-200"
                 >
                   <LogOut className="h-3.5 w-3.5" />
                   Disconnect
@@ -180,7 +184,7 @@ export default function SettingsPage({
               type="button"
               onClick={handleConnectDrive}
               disabled={!driveReady || driveSync.syncing}
-              className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg shadow-violet-600/25 transition hover:brightness-110 disabled:cursor-not-allowed disabled:opacity-45"
+              className="nte-cut-btn inline-flex items-center gap-2 bg-[#f5c451] px-5 py-2.5 font-display text-sm font-bold uppercase tracking-wider text-[#08090f] shadow-[0_0_24px_rgba(245,196,81,0.26)] transition hover:bg-[#ffd56b] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Cloud className="h-4 w-4" />
               {driveSync.syncing ? 'Connecting...' : 'Sign in with Google Drive'}
@@ -196,22 +200,24 @@ export default function SettingsPage({
       </div>
 
       {/* Multi-Profile Manager */}
-      <div className="rounded-2xl border border-white/10 bg-[#121728]/90 p-5">
-        <h2 className="font-display text-base font-bold text-white">Profiles</h2>
+      <div className="nte-panel rounded-xl p-5">
+        <h2 className="font-display text-base font-bold uppercase tracking-wide text-white">
+          Appraiser Profiles
+        </h2>
         <div className="mt-3 space-y-2">
           {profiles.map((p) => (
             <div
               key={p.id}
-              className="flex items-center justify-between rounded-xl border border-white/8 bg-[#0b0f1c] px-4 py-3"
+              className="flex items-center justify-between rounded-lg border border-white/8 bg-[#090b12] px-4 py-3"
             >
               <div>
                 <div className="flex items-center gap-2 text-sm font-semibold text-white">
                   {p.name}
-                  <span className="rounded bg-white/8 px-1.5 py-0.5 text-[10px] font-medium text-slate-300">
+                  <span className="rounded bg-white/8 px-1.5 py-0.5 font-mono text-[10px] font-medium uppercase text-slate-300">
                     {p.region || 'Global'}
                   </span>
                   {p.id === appState.activeProfileId && (
-                    <span className="rounded bg-violet-500/25 px-1.5 py-0.5 text-[10px] font-semibold text-violet-200">
+                    <span className="rounded bg-[#f5c451]/18 px-1.5 py-0.5 font-mono text-[10px] font-bold uppercase text-[#fde68a] ring-1 ring-[#f5c451]/40">
                       Active
                     </span>
                   )}
@@ -241,12 +247,12 @@ export default function SettingsPage({
             value={newName}
             onChange={(e) => setNewName(e.target.value)}
             placeholder="New profile name (e.g. Alt EU)"
-            className="min-w-[180px] flex-1 rounded-xl border border-white/10 bg-[#0a0e1a] px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-violet-400"
+            className="min-w-[180px] flex-1 rounded-lg border border-white/10 bg-[#080a10] px-3 py-2 text-sm text-white placeholder-slate-500 outline-none focus:border-[#f5c451]/70"
           />
           <select
             value={newRegion}
             onChange={(e) => setNewRegion(e.target.value)}
-            className="rounded-xl border border-white/10 bg-[#0a0e1a] px-3 py-2 text-sm text-slate-200 outline-none"
+            className="rounded-lg border border-white/10 bg-[#080a10] px-3 py-2 text-sm text-slate-200 outline-none focus:border-[#f5c451]/70"
           >
             <option value="Global">Global</option>
             <option value="EU">EU</option>
@@ -256,7 +262,7 @@ export default function SettingsPage({
           </select>
           <button
             type="submit"
-            className="inline-flex items-center gap-1.5 rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-500"
+            className="nte-cut-btn inline-flex items-center gap-1.5 bg-[#f5c451] px-4 py-2 font-display text-sm font-bold uppercase tracking-wider text-[#08090f] hover:bg-[#ffd56b]"
           >
             <UserPlus className="h-4 w-4" />
             Add Profile
@@ -265,8 +271,8 @@ export default function SettingsPage({
       </div>
 
       {/* Local JSON Backup & Restore */}
-      <div className="rounded-2xl border border-white/10 bg-[#121728]/90 p-5">
-        <h2 className="font-display text-base font-bold text-white">
+      <div className="nte-panel rounded-xl p-5">
+        <h2 className="font-display text-base font-bold uppercase tracking-wide text-white">
           Manual JSON Backup &amp; Restore
         </h2>
         <p className="mt-1 text-xs text-slate-400">
@@ -277,14 +283,14 @@ export default function SettingsPage({
           <button
             type="button"
             onClick={handleDownloadBackup}
-            className="inline-flex items-center gap-2 rounded-xl bg-white/8 px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/14"
+            className="inline-flex items-center gap-2 rounded-lg border border-white/12 bg-white/[0.04] px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white transition hover:border-[#2ee6ff]/45 hover:bg-[#2ee6ff]/10"
           >
-            <Download className="h-4 w-4 text-cyan-300" />
+            <Download className="h-4 w-4 text-[#2ee6ff]" />
             Download Backup JSON
           </button>
 
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl bg-white/8 px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/10 transition hover:bg-white/14">
-            <Upload className="h-4 w-4 text-violet-300" />
+          <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg border border-white/12 bg-white/[0.04] px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider text-white transition hover:border-[#f5c451]/45 hover:bg-[#f5c451]/10">
+            <Upload className="h-4 w-4 text-[#f5c451]" />
             Restore Backup JSON
             <input
               type="file"
@@ -297,8 +303,8 @@ export default function SettingsPage({
       </div>
 
       {/* Danger Zone */}
-      <div className="rounded-2xl border border-rose-500/20 bg-rose-500/[0.04] p-5">
-        <h2 className="font-display text-base font-bold text-rose-200">
+      <div className="rounded-xl border border-rose-500/25 bg-rose-500/[0.04] p-5">
+        <h2 className="font-display text-base font-bold uppercase tracking-wide text-rose-200">
           Clear Active Profile Pulls
         </h2>
         <p className="mt-1 text-xs text-slate-400">
@@ -311,16 +317,12 @@ export default function SettingsPage({
             onClearActivePulls();
             setFeedback({ type: 'ok', text: `Cleared pulls for ${activeProfile?.name}.` });
           }}
-          className="mt-3 inline-flex items-center gap-2 rounded-xl border border-rose-500/35 bg-rose-500/15 px-4 py-2 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/25"
+          className="mt-3 inline-flex items-center gap-2 rounded-lg border border-rose-500/35 bg-rose-500/15 px-4 py-2 font-mono text-xs font-bold uppercase text-rose-200 transition hover:bg-rose-500/25"
         >
           <Trash2 className="h-3.5 w-3.5" />
           Clear {activeProfile?.name}
         </button>
       </div>
-
-      <p className="text-center text-xs text-slate-500">
-        Hethereau is an unofficial fan tool and is not affiliated with Hotta Studio or Perfect World Games.
-      </p>
     </div>
   );
 }

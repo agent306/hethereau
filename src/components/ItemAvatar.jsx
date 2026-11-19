@@ -6,17 +6,17 @@ export default function ItemAvatar({ item, size = 'sm' }) {
 
   const dims =
     size === 'lg'
-      ? 'h-9 w-9 text-xs'
+      ? 'h-10 w-10 text-xs'
       : size === 'md'
-        ? 'h-7 w-7 text-[11px]'
+        ? 'h-8 w-8 text-[11px]'
         : 'h-6 w-6 text-[10px]';
 
-  const ring =
+  const frame =
     item?.rarity >= 5
-      ? 'ring-amber-400/60 bg-amber-500/15'
+      ? 'ring-[#f5c451]/70 bg-gradient-to-br from-[#f5c451]/25 via-[#181626] to-[#0b0d14]'
       : item?.rarity === 4
-        ? 'ring-fuchsia-400/50 bg-fuchsia-500/15'
-        : 'ring-sky-400/35 bg-sky-500/10';
+        ? 'ring-[#e046ff]/55 bg-gradient-to-br from-[#e046ff]/20 via-[#171326] to-[#0b0d14]'
+        : 'ring-[#2ee6ff]/40 bg-gradient-to-br from-[#2ee6ff]/15 via-[#101826] to-[#0b0d14]';
 
   if (src) {
     return (
@@ -25,28 +25,28 @@ export default function ItemAvatar({ item, size = 'sm' }) {
         alt={item.name || item.id}
         loading="lazy"
         onError={() => setImgFailed(true)}
-        className={`${dims} shrink-0 rounded-full object-cover object-top ring-1 ${ring}`}
+        className={`${dims} shrink-0 rounded-md object-cover object-top ring-1 ${frame}`}
       />
     );
   }
 
   return (
     <span
-      className={`${dims} inline-flex shrink-0 items-center justify-center rounded-full font-bold text-white/90 ring-1 ${ring}`}
+      className={`${dims} inline-flex shrink-0 items-center justify-center rounded-md font-bold text-white/90 ring-1 ${frame}`}
       style={{
-        backgroundColor: item?.color ? `${item.color}33` : undefined,
+        backgroundColor: item?.color ? `${item.color}28` : undefined,
       }}
     >
       <span
-        className="h-2.5 w-2.5 rounded-full"
+        className="h-2.5 w-2.5 rotate-45"
         style={{
           backgroundColor:
             item?.color ||
             (item?.rarity >= 5
-              ? '#fbbf24'
+              ? '#f5c451'
               : item?.rarity === 4
-                ? '#d946ef'
-                : '#38bdf8'),
+                ? '#e046ff'
+                : '#2ee6ff'),
         }}
       />
     </span>

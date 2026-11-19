@@ -387,6 +387,30 @@ export default function App() {
           ) : (
             <DashboardPage analysis={analysis} />
           )}
+
+          <footer className="mt-12 border-t border-white/8 pt-6 pb-4 text-center text-xs text-slate-500">
+            <p>
+              Hethereau is an unofficial fan tool and is not affiliated with Hotta Studio or Perfect World Games.
+            </p>
+            <div className="mt-2 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-slate-400">
+              <a href="/privacy" className="transition hover:text-cyan-300">
+                Privacy Policy
+              </a>
+              <span aria-hidden="true" className="text-slate-600">&middot;</span>
+              <a href="/terms" className="transition hover:text-cyan-300">
+                Terms of Service
+              </a>
+              <span aria-hidden="true" className="text-slate-600">&middot;</span>
+              <a
+                href="https://github.com/agent306/hethereau"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="transition hover:text-cyan-300"
+              >
+                GitHub
+              </a>
+            </div>
+          </footer>
         </div>
       </main>
 

@@ -27,14 +27,18 @@ export default function DashboardPage({ analysis }) {
 
   return (
     <div className="space-y-6">
-      {/* Top Hero Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
+      {/* Top Hethereau Terminal Header */}
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-white/10 pb-5">
         <div>
-          <h1 className="font-display text-3xl font-bold tracking-tight text-white">
+          <div className="mb-1 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-widest uppercase text-[#f5c451]">
+            <span className="inline-block h-1.5 w-1.5 rotate-45 bg-[#2ee6ff]" />
+            Scarborough Fair // Anomaly Pull Telemetry
+          </div>
+          <h1 className="font-display text-3xl font-bold tracking-wide uppercase text-white sm:text-4xl">
             Pull Counter
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Scarborough Fair &amp; Arc Research pity tracking · 100% local in your browser
+            Scarborough Fair &amp; Arc Research pity ledger · Stored 100% locally in your browser
           </p>
         </div>
 
@@ -43,20 +47,20 @@ export default function DashboardPage({ analysis }) {
             <button
               type="button"
               onClick={() => setCharactersOnly((v) => !v)}
-              className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2.5 text-sm font-semibold transition ring-1 ${
+              className={`nte-cut-btn inline-flex items-center gap-2 px-4 py-2.5 font-mono text-xs font-bold uppercase tracking-wider transition ring-1 ${
                 charactersOnly
-                  ? 'bg-violet-500/20 text-violet-100 ring-violet-400/45 shadow-md shadow-violet-500/10'
-                  : 'bg-white/5 text-slate-300 ring-white/12 hover:bg-white/10 hover:text-white'
+                  ? 'bg-[#f5c451]/18 text-[#fef3c7] ring-[#f5c451]/55 shadow-[0_0_20px_rgba(245,196,81,0.14)]'
+                  : 'bg-white/[0.04] text-slate-300 ring-white/12 hover:bg-white/[0.08] hover:text-white'
               }`}
               title="Toggle between showing Characters Only vs All Items (skins, gliders, mod parts, dice)"
             >
-              <Users className="h-4 w-4 text-violet-300" />
-              {charactersOnly ? 'Characters Only: ON' : 'Characters Only: OFF'}
+              <Users className="h-4 w-4 text-[#f5c451]" />
+              {charactersOnly ? 'Chars Only: ON' : 'Chars Only: OFF'}
             </button>
           )}
           <Link
             href="/import"
-            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-violet-600 to-cyan-500 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-violet-600/25 transition hover:brightness-110"
+            className="nte-cut-btn inline-flex items-center gap-2 bg-[#f5c451] px-5 py-2.5 font-display text-sm font-bold uppercase tracking-wider text-[#08090f] shadow-[0_0_24px_rgba(245,196,81,0.28)] transition hover:bg-[#ffd56b]"
           >
             <Download className="h-4 w-4" />
             Zero-Install Import
@@ -64,91 +68,102 @@ export default function DashboardPage({ analysis }) {
         </div>
       </div>
 
-      {/* Empty State Callout */}
+      {/* Empty State Callout — Eibon Intake Card */}
       {isEmpty && (
-        <div className="rounded-2xl border border-violet-500/25 bg-gradient-to-br from-violet-500/12 via-[#121728] to-cyan-500/10 p-6">
-          <div className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
-            <div className="max-w-xl">
-              <div className="inline-flex items-center gap-1.5 rounded-full bg-violet-500/20 px-2.5 py-0.5 text-xs font-semibold text-violet-200 ring-1 ring-violet-400/30">
-                Zero-Install PC Capture
+        <div className="nte-panel-gold overflow-hidden rounded-xl p-6">
+          <div className="flex flex-col justify-between gap-5 md:flex-row md:items-center">
+            <div className="flex items-start gap-4 max-w-2xl">
+              <img
+                src="/logo.png"
+                alt="Hethereau Solid Die"
+                className="hidden h-16 w-16 shrink-0 object-contain drop-shadow-[0_0_16px_rgba(245,196,81,0.35)] sm:block"
+              />
+              <div>
+                <div className="inline-flex items-center gap-1.5 rounded border border-[#f5c451]/40 bg-[#f5c451]/12 px-2.5 py-0.5 font-mono text-[10px] font-bold uppercase tracking-widest text-[#fde68a]">
+                  Zero-Install PC Capture
+                </div>
+                <h2 className="mt-2 font-display text-xl font-bold uppercase tracking-wide text-white">
+                  Import your Neverness to Everness pulls in 30 seconds
+                </h2>
+                <p className="mt-1.5 text-sm leading-relaxed text-slate-300">
+                  Run a single PowerShell command using Windows&apos; built-in{' '}
+                  <code className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-[#2ee6ff]">
+                    pktmon.exe
+                  </code>
+                  , flip through your in-game F3 Scarborough Fair history pages, and paste the decoded JSON back here — zero installs, zero drivers.
+                </p>
               </div>
-              <h2 className="mt-2 font-display text-xl font-bold text-white">
-                Import your Neverness to Everness pulls in 30 seconds
-              </h2>
-              <p className="mt-1.5 text-sm leading-relaxed text-slate-300">
-                Paste a single PowerShell command using Windows&apos; built-in{' '}
-                <code className="rounded bg-white/10 px-1.5 py-0.5 text-xs text-cyan-200">
-                  pktmon.exe
-                </code>
-                , flip through your in-game F3 history pages, and paste the decoded JSON right back here — zero installs, zero drivers.
-              </p>
             </div>
             <div className="flex shrink-0 flex-wrap gap-2.5">
               <Link
                 href="/import"
-                className="rounded-xl bg-white px-4 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-slate-100"
+                className="nte-cut-btn bg-[#f5c451] px-5 py-2.5 font-display text-sm font-bold uppercase tracking-wider text-[#08090f] transition hover:bg-[#ffd56b]"
               >
-                Start Import →
+                Start Import &rarr;
               </Link>
             </div>
           </div>
         </div>
       )}
 
-      {/* Account KPI Strip */}
+      {/* Account Telemetry KPI Strip */}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <div className="rounded-2xl border border-white/8 bg-[#121728]/85 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Dices className="h-4 w-4 text-violet-400" />
-            Total Pulls
+        <div className="nte-panel relative overflow-hidden rounded-xl p-4">
+          <span className="absolute top-0 bottom-0 left-0 w-[3px] bg-[#f5c451]" />
+          <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <span>Total Rolls</span>
+            <Dices className="h-4 w-4 text-[#f5c451]" />
           </div>
           <div className="mt-2 font-mono text-2xl font-bold text-white tabular-nums">
             {totals.pulls.toLocaleString()}
           </div>
           {totals.bonusRows > 0 && (
-            <div className="mt-0.5 text-[11px] text-slate-500">
-              +{totals.bonusRows} board bonus rewards
+            <div className="mt-0.5 font-mono text-[11px] text-emerald-400/80">
+              +{totals.bonusRows} board bonus
             </div>
           )}
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-[#121728]/85 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Coins className="h-4 w-4 text-cyan-400" />
-            Anulith Spent
+        <div className="nte-panel relative overflow-hidden rounded-xl p-4">
+          <span className="absolute top-0 bottom-0 left-0 w-[3px] bg-[#2ee6ff]" />
+          <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <span>Anulith Spent</span>
+            <Coins className="h-4 w-4 text-[#2ee6ff]" />
           </div>
-          <div className="mt-2 font-mono text-2xl font-bold text-cyan-200 tabular-nums">
+          <div className="mt-2 font-mono text-2xl font-bold text-[#2ee6ff] tabular-nums">
             {totals.anulith.toLocaleString()}
           </div>
-          <div className="mt-0.5 text-[11px] text-slate-500">160 per pull</div>
+          <div className="mt-0.5 font-mono text-[11px] text-slate-500">160 per roll</div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-[#121728]/85 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Sparkles className="h-4 w-4 text-amber-400" />
-            S-Class Chars / Arcs
+        <div className="nte-panel relative overflow-hidden rounded-xl p-4">
+          <span className="absolute top-0 bottom-0 left-0 w-[3px] bg-amber-400" />
+          <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <span>S-Class Hits</span>
+            <Sparkles className="h-4 w-4 text-[#f5c451]" />
           </div>
-          <div className="mt-2 font-mono text-2xl font-bold text-amber-300 tabular-nums">
+          <div className="mt-2 font-mono text-2xl font-bold text-[#f5c451] tabular-nums">
             {totals.sRanks}
           </div>
-          <div className="mt-0.5 text-[11px] text-slate-500">
+          <div className="mt-0.5 font-mono text-[11px] text-slate-400">
             {totals.pulls > 0
-              ? `${((totals.sRanks / totals.pulls) * 100).toFixed(2)}% rate${
+              ? `${((totals.sRanks / totals.pulls) * 100).toFixed(2)}%${
                   totals.sRankExtras > 0 ? ` · +${totals.sRankExtras} S-items` : ''
                 }`
               : '—'}
           </div>
         </div>
 
-        <div className="rounded-2xl border border-white/8 bg-[#121728]/85 p-4">
-          <div className="flex items-center gap-2 text-xs font-medium text-slate-400">
-            <Layers className="h-4 w-4 text-fuchsia-400" />
-            A-Class Chars / Arcs
+        <div className="nte-panel relative overflow-hidden rounded-xl p-4">
+          <span className="absolute top-0 bottom-0 left-0 w-[3px] bg-[#e046ff]" />
+          <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <span>A-Class Hits</span>
+            <Layers className="h-4 w-4 text-[#e046ff]" />
           </div>
-          <div className="mt-2 font-mono text-2xl font-bold text-fuchsia-300 tabular-nums">
+          <div className="mt-2 font-mono text-2xl font-bold text-[#e879f9] tabular-nums">
             {totals.aRanks}
           </div>
-          <div className="mt-0.5 text-[11px] text-slate-500">
+          <div className="mt-0.5 font-mono text-[11px] text-slate-400">
             {totals.pulls > 0
               ? `${((totals.aRanks / totals.pulls) * 100).toFixed(2)}% rate`
               : '—'}
@@ -156,7 +171,7 @@ export default function DashboardPage({ analysis }) {
         </div>
       </div>
 
-      {/* 4 NTE Board Cards */}
+      {/* 4 NTE Board Plaques */}
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         {POOL_ORDER.map((poolKey) => (
           <BannerCard
@@ -168,21 +183,21 @@ export default function DashboardPage({ analysis }) {
         ))}
       </div>
 
-      {/* Pity Distribution Chart */}
+      {/* Pity Distribution Telemetry */}
       <PityChart pools={pools} />
 
-      {/* Recent Activity */}
+      {/* Recent Ledger Entries */}
       {allRecords.length > 0 && (
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h3 className="font-display text-lg font-bold text-white">
-              {charactersOnly ? 'Recent Character Pulls' : 'Recent Pulls'}
+            <h3 className="font-display text-lg font-bold uppercase tracking-wide text-white">
+              {charactersOnly ? 'Recent Agent Pulls' : 'Recent Pulls'}
             </h3>
             <Link
               href="/history"
-              className="text-xs font-semibold text-violet-300 hover:text-violet-200"
+              className="font-mono text-xs font-semibold uppercase tracking-wider text-[#f5c451] hover:text-[#fde68a]"
             >
-              View full log ({allRecords.length}) →
+              Open Full Ledger ({allRecords.length}) &rarr;
             </Link>
           </div>
           <HistoryTable rows={recentRows} compact />

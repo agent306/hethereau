@@ -4,11 +4,11 @@ import ItemAvatar from './ItemAvatar.jsx';
 import Link from './Link.jsx';
 
 function pityPillColor(pity, hardPity) {
-  if (!hardPity) return 'bg-amber-500/20 text-amber-200 ring-amber-400/30';
+  if (!hardPity) return 'bg-[#f5c451]/18 text-[#fde68a] ring-[#f5c451]/45';
   const ratio = pity / hardPity;
-  if (ratio <= 0.45) return 'bg-emerald-500/20 text-emerald-200 ring-emerald-400/35';
-  if (ratio <= 0.78) return 'bg-amber-500/20 text-amber-200 ring-amber-400/35';
-  return 'bg-rose-500/20 text-rose-200 ring-rose-400/35';
+  if (ratio <= 0.45) return 'bg-emerald-500/18 text-emerald-300 ring-emerald-400/40';
+  if (ratio <= 0.78) return 'bg-[#f5c451]/18 text-[#fde68a] ring-[#f5c451]/45';
+  return 'bg-rose-500/20 text-rose-300 ring-rose-400/45';
 }
 
 export default function BannerCard({
@@ -40,102 +40,144 @@ export default function BannerCard({
   const hardPity = def.hardPity;
   const pct = hardPity ? Math.min(100, (currentSPity / hardPity) * 100) : 0;
   const softPct = hardPity && def.softPity ? (def.softPity / hardPity) * 100 : null;
+  const stepSlots = 10;
 
   return (
-    <div className="group flex flex-col justify-between rounded-2xl border border-white/8 bg-[#121728]/90 p-5 shadow-xl shadow-black/25 transition-colors hover:border-white/15">
-      <div>
-        {/* Header */}
-        <div className="flex items-start justify-between gap-3">
+    <div className="nte-panel group flex flex-col justify-between overflow-hidden rounded-xl transition-all hover:border-white/18">
+      {/* Top Scarborough Board Accent Rail */}
+      <div
+        className="h-[3px] w-full"
+        style={{
+          background: `linear-gradient(90deg, ${def.accent}, rgba(255,255,255,0.12) 72%, transparent)`,
+        }}
+      />
+
+      <div className="p-5">
+        {/* Board Plaque Header */}
+        <div className="nte-stripes -mx-5 -mt-5 mb-4 flex items-start justify-between gap-3 border-b border-white/8 px-5 py-4">
           <div>
-            <div className="flex items-center gap-2">
+            <div className="mb-1 flex items-center gap-2 font-mono text-[10px] font-bold tracking-widest uppercase">
               <span
-                className="h-2.5 w-2.5 rounded-full"
-                style={{ backgroundColor: def.accent, boxShadow: `0 0 12px ${def.accent}` }}
+                className="inline-block h-2 w-2 rotate-45"
+                style={{ backgroundColor: def.accent, boxShadow: `0 0 10px ${def.accent}` }}
               />
-              <h3 className="font-display text-lg font-bold text-white">{def.title}</h3>
+              <span style={{ color: def.accent }}>{def.code || 'BOARD'}</span>
+              <span className="text-slate-600">//</span>
+              <span className="text-slate-400">{def.currency}</span>
             </div>
+            <h3 className="font-display text-xl font-bold tracking-wide uppercase text-white">
+              {def.title}
+            </h3>
             <p className="mt-0.5 text-xs text-slate-400">{def.subtitle}</p>
           </div>
           <Link
             href={`/history?pool=${encodeURIComponent(def.key)}`}
-            className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/4 px-2.5 py-1 text-xs font-medium text-slate-300 transition hover:border-violet-400/40 hover:bg-violet-500/15 hover:text-white"
+            className="nte-cut-chip inline-flex shrink-0 items-center gap-1 border border-white/12 bg-white/[0.04] px-3 py-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-200 transition hover:border-[#f5c451]/50 hover:bg-[#f5c451]/15 hover:text-[#fef3c7]"
           >
-            History
+            Ledger
             <ArrowUpRight className="h-3.5 w-3.5" />
           </Link>
         </div>
 
-        {/* Rule pill */}
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-md bg-white/5 px-2 py-0.5 text-[11px] font-medium text-slate-300 ring-1 ring-white/8">
-            <ShieldCheck className="h-3 w-3 text-cyan-400" />
+        {/* Rule Badges */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-1.5 rounded border border-white/10 bg-[#0a0c14] px-2.5 py-0.5 font-mono text-[11px] text-slate-300">
+            <ShieldCheck className="h-3 w-3 text-[#2ee6ff]" />
             {def.guaranteeNote}
           </span>
           {inSoftPity && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-300 ring-1 ring-amber-400/35">
-              <Flame className="h-3 w-3" />
-              Board Mod Active (~19.6%)
+            <span className="inline-flex items-center gap-1 rounded border border-[#f5c451]/45 bg-[#f5c451]/15 px-2.5 py-0.5 font-mono text-[11px] font-bold text-[#fde68a]">
+              <Flame className="h-3 w-3 text-[#f5c451]" />
+              BOARD MOD ACTIVE (~19.6%)
             </span>
           )}
           {def.key === 'fork_lottery' && guaranteedNext && (
-            <span className="inline-flex items-center gap-1 rounded-md bg-emerald-500/15 px-2 py-0.5 text-[11px] font-semibold text-emerald-300 ring-1 ring-emerald-400/35">
-              Next S Guaranteed UP
+            <span className="inline-flex items-center gap-1 rounded border border-emerald-400/40 bg-emerald-500/15 px-2.5 py-0.5 font-mono text-[11px] font-bold text-emerald-300">
+              NEXT S GUARANTEED UP
             </span>
           )}
         </div>
 
-        {/* Key Metric Counters */}
+        {/* Telemetry Counters */}
         <div className="mt-4 grid grid-cols-3 gap-2.5">
-          <div className="rounded-xl bg-[#0c101d] p-3 ring-1 ring-white/6">
-            <div className="text-[11px] font-medium text-slate-400">
+          <div className="relative overflow-hidden rounded-lg border border-white/8 bg-[#090b12] p-3">
+            <span
+              className="absolute top-0 left-0 h-full w-[2px]"
+              style={{ backgroundColor: '#f5c451' }}
+            />
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               {isMonopoly ? 'Char S-Pity' : 'S-Rank Pity'}
             </div>
             <div className="mt-1 flex items-baseline gap-1 font-mono tabular-nums">
-              <span className="text-2xl font-bold text-amber-300">{currentSPity}</span>
+              <span className="text-2xl font-bold text-[#f5c451]">{currentSPity}</span>
               {hardPity && <span className="text-xs text-slate-500">/ {hardPity}</span>}
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#0c101d] p-3 ring-1 ring-white/6">
-            <div className="text-[11px] font-medium text-slate-400">
+          <div className="relative overflow-hidden rounded-lg border border-white/8 bg-[#090b12] p-3">
+            <span className="absolute top-0 left-0 h-full w-[2px] bg-[#e046ff]" />
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-400">
               {isMonopoly ? '10-Pull Step' : 'A-Rank Pity'}
             </div>
             <div className="mt-1 flex items-baseline gap-1 font-mono tabular-nums">
-              <span className="text-2xl font-bold text-fuchsia-300">{currentAPity}</span>
+              <span className="text-2xl font-bold text-[#e879f9]">{currentAPity}</span>
               <span className="text-xs text-slate-500">/ 10</span>
+            </div>
+            {/* Mini 10-step tile pips */}
+            <div className="mt-1.5 flex gap-0.5">
+              {Array.from({ length: stepSlots }).map((_, idx) => (
+                <span
+                  key={idx}
+                  className={`h-1 flex-1 rounded-[1px] ${
+                    idx < currentAPity ? 'bg-[#e046ff]' : 'bg-white/10'
+                  }`}
+                />
+              ))}
             </div>
           </div>
 
-          <div className="rounded-xl bg-[#0c101d] p-3 ring-1 ring-white/6">
-            <div className="text-[11px] font-medium text-slate-400">Total Pulls</div>
+          <div className="relative overflow-hidden rounded-lg border border-white/8 bg-[#090b12] p-3">
+            <span className="absolute top-0 left-0 h-full w-[2px] bg-[#2ee6ff]" />
+            <div className="font-mono text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+              Total Rolls
+            </div>
             <div className="mt-1 font-mono text-2xl font-bold text-white tabular-nums">
               {totalPulls}
             </div>
           </div>
         </div>
 
-        {/* Pity Progress Bar */}
+        {/* Segmented Board-Tile Pity Track */}
         {hardPity && (
-          <div className="mt-3.5">
-            <div className="mb-1 flex items-center justify-between text-[11px] text-slate-400">
+          <div className="mt-4">
+            <div className="mb-1.5 flex items-center justify-between font-mono text-[11px] text-slate-400">
               <span>{Math.max(0, hardPity - currentSPity)} pulls to hard pity</span>
               {def.softPity && (
-                <span className="text-amber-300/80">Soft pity @ {def.softPity}</span>
+                <span className="font-semibold text-[#f5c451]">
+                  BOARD MOD @ {def.softPity}
+                </span>
               )}
             </div>
-            <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-white/8">
+            <div className="relative h-3 w-full overflow-hidden rounded-sm border border-white/10 bg-[#080a10]">
               <div
-                className="h-full rounded-full transition-all duration-500"
+                className="h-full transition-all duration-500"
                 style={{
                   width: `${pct}%`,
                   background: inSoftPity
-                    ? 'linear-gradient(90deg, #f59e0b, #fb7185)'
-                    : `linear-gradient(90deg, ${def.accent}, #22d3ee)`,
+                    ? 'linear-gradient(90deg, #f5c451, #fb7185)'
+                    : `linear-gradient(90deg, ${def.accent}, #2ee6ff)`,
+                }}
+              />
+              {/* 10-pull tile segment dividers */}
+              <div
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  backgroundImage: `repeating-linear-gradient(90deg, transparent, transparent calc(${(10 / hardPity) * 100}% - 1px), rgba(8, 10, 16, 0.75) calc(${(10 / hardPity) * 100}% - 1px), rgba(8, 10, 16, 0.75) ${(10 / hardPity) * 100}%)`,
                 }}
               />
               {softPct && (
                 <div
-                  className="absolute top-0 bottom-0 w-0.5 bg-amber-300/80"
+                  className="absolute top-0 bottom-0 w-[2px] bg-[#f5c451] shadow-[0_0_8px_#f5c451]"
                   style={{ left: `${softPct}%` }}
                   title={`Board Modification soft pity at ${def.softPity}`}
                 />
@@ -144,38 +186,40 @@ export default function BannerCard({
           </div>
         )}
 
-        {/* Secondary Stats Row */}
-        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/6 pt-3 text-xs text-slate-400">
+        {/* Secondary Telemetry Row */}
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-2 border-t border-white/8 pt-3 text-xs text-slate-400">
           <span>
             Avg {isMonopoly ? 'S-Char' : 'S-Rank'}:{' '}
-            <strong className="font-mono text-slate-200 tabular-nums">
+            <strong className="font-mono text-white tabular-nums">
               {sRankCount > 0 ? avgSPity.toFixed(1) : '—'}
             </strong>
           </span>
           <span>
             {isMonopoly ? 'S-Chars' : 'S-Ranks'}:{' '}
-            <strong className="font-mono text-amber-300 tabular-nums">{sRankCount}</strong>
+            <strong className="font-mono text-[#f5c451] tabular-nums">{sRankCount}</strong>
           </span>
           <span>
             Anulith:{' '}
-            <strong className="font-mono text-cyan-300 tabular-nums">
+            <strong className="font-mono text-[#2ee6ff] tabular-nums">
               {currencySpent.toLocaleString()}
             </strong>
           </span>
           {bonusRows > 0 && (
-            <span className="text-[11px] text-slate-500">+{bonusRows} bonus</span>
+            <span className="font-mono text-[11px] text-emerald-400/80">
+              +{bonusRows} bonus
+            </span>
           )}
         </div>
       </div>
 
-      {/* S-Class Pulls Strip with Character Portraits */}
-      <div className="mt-4 border-t border-white/6 pt-3">
+      {/* S-Class Agent Dossier Strip */}
+      <div className="border-t border-white/8 bg-[#0b0d15]/70 px-5 py-3.5">
         <div className="mb-2.5 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-slate-400">
-            <Sparkles className="h-3.5 w-3.5 text-amber-400" />
+          <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
+            <Sparkles className="h-3.5 w-3.5 text-[#f5c451]" />
             {isMonopoly
               ? charactersOnly
-                ? 'S-Class Characters'
+                ? 'S-Class Agents'
                 : 'All S-Class Drops'
               : 'S-Class Pulls'}
           </div>
@@ -184,9 +228,9 @@ export default function BannerCard({
             <button
               type="button"
               onClick={onToggleCharactersOnly}
-              className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[11px] font-semibold transition ring-1 ${
+              className={`inline-flex items-center gap-1 rounded px-2 py-0.5 font-mono text-[10px] font-bold uppercase tracking-wider transition ring-1 ${
                 charactersOnly
-                  ? 'bg-violet-500/20 text-violet-200 ring-violet-400/35 hover:bg-violet-500/30'
+                  ? 'bg-[#f5c451]/16 text-[#fde68a] ring-[#f5c451]/45 hover:bg-[#f5c451]/24'
                   : 'bg-white/6 text-slate-300 ring-white/12 hover:bg-white/10'
               }`}
               title={
@@ -196,13 +240,13 @@ export default function BannerCard({
               }
             >
               <Users className="h-3 w-3" />
-              {charactersOnly ? `Chars Only (+${nonPitySCount} hidden)` : 'Showing All S'}
+              {charactersOnly ? `Chars Only (+${nonPitySCount} hidden)` : 'All S Drops'}
             </button>
           )}
         </div>
 
         {displayedSHits.length === 0 ? (
-          <div className="rounded-lg bg-white/3 px-3 py-2 text-xs text-slate-500">
+          <div className="rounded-md border border-dashed border-white/8 bg-white/[0.02] px-3 py-2 text-xs text-slate-500">
             {isMonopoly
               ? 'No S-Class characters logged on this board yet.'
               : 'No S-Class pulls logged on this board yet.'}
@@ -214,10 +258,10 @@ export default function BannerCard({
               return (
                 <div
                   key={hit.id}
-                  className={`inline-flex items-center gap-2 rounded-xl border pl-1.5 pr-2 py-1 text-xs transition ${
+                  className={`inline-flex items-center gap-2 rounded-lg border pl-1.5 pr-2 py-1 text-xs transition ${
                     isNonPity
-                      ? 'border-white/8 bg-[#0b0f1b]/80 opacity-80'
-                      : 'border-white/12 bg-[#0d111e] shadow-sm shadow-black/30'
+                      ? 'border-white/8 bg-[#0b0d14]/80 opacity-75'
+                      : 'border-[#f5c451]/28 bg-[#121522] shadow-sm shadow-black/40 hover:border-[#f5c451]/55'
                   }`}
                   title={`${hit.item.fullName || hit.item.name} · ${hit.bannerTitle} · ${hit.time}${
                     isNonPity ? ' (Non-character tile drop; does not reset character pity)' : ''
@@ -228,12 +272,12 @@ export default function BannerCard({
                     {hit.item.name}
                   </span>
                   {hit.rateStatus === 'off_rate' && (
-                    <span className="rounded bg-rose-500/20 px-1 text-[10px] font-semibold text-rose-300">
+                    <span className="rounded bg-rose-500/20 px-1 font-mono text-[10px] font-bold text-rose-300">
                       OFF
                     </span>
                   )}
                   {hit.rateStatus === 'guaranteed' && (
-                    <span className="rounded bg-cyan-500/20 px-1 text-[10px] font-semibold text-cyan-300">
+                    <span className="rounded bg-[#2ee6ff]/20 px-1 font-mono text-[10px] font-bold text-[#2ee6ff]">
                       G
                     </span>
                   )}
@@ -243,7 +287,7 @@ export default function BannerCard({
                     </span>
                   ) : (
                     <span
-                      className={`rounded-md px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums ring-1 ${pityPillColor(
+                      className={`rounded px-1.5 py-0.5 font-mono text-[11px] font-bold tabular-nums ring-1 ${pityPillColor(
                         hit.pityAtPull,
                         hardPity
                       )}`}
