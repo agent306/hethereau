@@ -36,8 +36,8 @@ export default function SettingsPage({
     setFeedback(null);
     try {
       await onDriveConnect();
-    } catch (err) {
-      setFeedback({ type: 'err', text: err.message });
+    } catch {
+      // Error is displayed inside the Google Drive Sync card via driveSync.error
     }
   }
 

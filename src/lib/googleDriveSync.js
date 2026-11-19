@@ -69,6 +69,7 @@ export async function requestDriveAccessToken({ prompt = 'consent' } = {}) {
     const tokenClient = window.google.accounts.oauth2.initTokenClient({
       client_id: id,
       scope: `${DRIVE_SCOPE} https://www.googleapis.com/auth/userinfo.email`,
+      include_granted_scopes: true,
       callback: (resp) => {
         if (resp?.error) {
           reject(new Error(resp.error_description || resp.error));
@@ -76,6 +77,18 @@ export async function requestDriveAccessToken({ prompt = 'consent' } = {}) {
         }
         if (!resp?.access_token) {
           reject(new Error('Google did not return an access token.'));
+          return;
+        }
+        const hasDrive =
+          typeof window.google?.accounts?.oauth2?.hasGrantedAllScopes === 'function'
+            ? window.google.accounts.oauth2.hasGrantedAllScopes(resp, DRIVE_SCOPE)
+            : String(resp.scope || '').split(/\s+/).includes(DRIVE_SCOPE);
+        if (!hasDrive) {
+          reject(
+            new Error(
+              'Google Drive permission was not checked. Click "Sign in with Google Drive" again and tick the box for "See, create, and delete its own configuration data in your Google Drive".'
+            )
+          );
           return;
         }
         resolve({
@@ -89,6 +102,19 @@ export async function requestDriveAccessToken({ prompt = 'consent' } = {}) {
     });
     tokenClient.requestAccessToken({ prompt });
   });
+}
+
+function formatDriveApiError(action, status, bodyText) {
+  if (status === 403) {
+    const lower = String(bodyText || '').toLowerCase();
+    if (lower.includes('insufficient') || lower.includes('scope')) {
+      return 'Google Drive permission was not granted. Click "Sign in with Google Drive" again and tick the checkbox for Drive app data access.';
+    }
+    if (lower.includes('accessnotconfigured') || lower.includes('has not been used in project')) {
+      return 'Google Drive API is not enabled on the Google Cloud project yet.';
+    }
+  }
+  return `Drive ${action} failed (${status}): ${String(bodyText || '').slice(0, 180)}`;
 }
 
 export async function fetchGoogleUserEmail(accessToken) {
@@ -113,7 +139,7 @@ export async function findDriveSyncFile(accessToken) {
   if (res.status === 401) throw new Error('AUTH_EXPIRED');
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Drive search failed (${res.status}): ${txt.slice(0, 180)}`);
+    throw new Error(formatDriveApiError('search', res.status, txt));
   }
   const data = await res.json();
   return data.files?.[0] || null;
@@ -127,7 +153,7 @@ export async function downloadDriveSyncFile(accessToken, fileId) {
   if (res.status === 401) throw new Error('AUTH_EXPIRED');
   if (!res.ok) {
     const txt = await res.text();
-    throw new Error(`Drive download failed (${res.status}): ${txt.slice(0, 180)}`);
+    throw new Error(formatDriveApiError('download', res.status, txt));
   }
   const json = await res.json();
   return json?.state && json.state.profiles ? json.state : null;
