@@ -1,7 +1,12 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 
 export default function ItemAvatar({ item, size = 'sm' }) {
   const [imgFailed, setImgFailed] = useState(false);
+
+  useEffect(() => {
+    setImgFailed(false);
+  }, [item?.avatar]);
+
   const src = item?.avatar && !imgFailed ? item.avatar : null;
 
   const dims =
@@ -25,7 +30,7 @@ export default function ItemAvatar({ item, size = 'sm' }) {
         alt={item.name || item.id}
         loading="lazy"
         onError={() => setImgFailed(true)}
-        className={`${dims} shrink-0 rounded-md object-cover object-top ring-1 ${frame}`}
+        className={`${dims} shrink-0 rounded-md object-cover object-center ring-1 ${frame}`}
       />
     );
   }

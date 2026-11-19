@@ -1,4 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
+import { CATALOG_BANNERS, CATALOG_ITEMS } from "./catalogWhitelist.js";
 
 /**
  * PoolStatsDO — One SQLite-backed Durable Object per NTE banner pool
@@ -239,7 +240,13 @@ export class PoolStatsDO extends DurableObject {
          ORDER BY is_pity_s DESC, count DESC
          LIMIT 24`
       )
-      .toArray();
+      .toArray()
+      .map((row) => ({
+        ...row,
+        item_name:
+          CATALOG_ITEMS[row.item_id]?.[0] ||
+          (row.item_name === "[object Object]" ? row.item_id : row.item_name),
+      }));
 
     const topAItems = this.ctx.storage.sql
       .exec(
@@ -249,7 +256,13 @@ export class PoolStatsDO extends DurableObject {
          ORDER BY count DESC
          LIMIT 16`
       )
-      .toArray();
+      .toArray()
+      .map((row) => ({
+        ...row,
+        item_name:
+          CATALOG_ITEMS[row.item_id]?.[0] ||
+          (row.item_name === "[object Object]" ? row.item_id : row.item_name),
+      }));
 
     const banners = this.ctx.storage.sql
       .exec(
@@ -258,7 +271,13 @@ export class PoolStatsDO extends DurableObject {
          ORDER BY total_pulls DESC
          LIMIT 16`
       )
-      .toArray();
+      .toArray()
+      .map((row) => ({
+        ...row,
+        banner_title:
+          CATALOG_BANNERS[row.banner_id] ||
+          (row.banner_title === "[object Object]" ? row.banner_id : row.banner_title),
+      }));
 
     const histogram = {};
     for (const r of histRows) {

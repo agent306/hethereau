@@ -30,6 +30,7 @@ export default function GlobalStatsPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [selectedPool, setSelectedPool] = useState('monopoly_limited');
+  const [charsOnly, setCharsOnly] = useState(true);
   const [contributing, setContributing] = useState(false);
   const [contribMsg, setContribMsg] = useState(null);
 
@@ -452,7 +453,7 @@ export default function GlobalStatsPage({
 
       {/* Top Pulled S-Class Characters / Items */}
       <div className="nte-panel rounded-xl p-5">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
             <h2 className="font-display text-base font-bold uppercase tracking-wide text-white">
               Most Pulled S-Class on {poolDef.title}
@@ -461,50 +462,78 @@ export default function GlobalStatsPage({
               Verified catalog drops aggregated from opted-in community exports
             </p>
           </div>
-          <span className="inline-flex items-center gap-1 rounded border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase text-emerald-300">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Anti-Spam Verified
-          </span>
+          <div className="flex items-center gap-2">
+            {(selectedPool === 'monopoly_limited' ||
+              selectedPool === 'monopoly_standard') && (
+              <button
+                type="button"
+                onClick={() => setCharsOnly((v) => !v)}
+                className={`inline-flex items-center gap-1 rounded px-2.5 py-1 font-mono text-[10px] font-bold uppercase tracking-wider transition ring-1 ${
+                  charsOnly
+                    ? 'bg-[#f5c451]/18 text-[#fde68a] ring-[#f5c451]/50'
+                    : 'bg-white/[0.04] text-slate-300 ring-white/12 hover:bg-white/10'
+                }`}
+              >
+                <Users className="h-3 w-3" />
+                {charsOnly ? 'Characters Only' : 'All S Drops'}
+              </button>
+            )}
+            <span className="inline-flex items-center gap-1 rounded border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 font-mono text-[10px] font-bold uppercase text-emerald-300">
+              <ShieldCheck className="h-3.5 w-3.5" />
+              Anti-Spam Verified
+            </span>
+          </div>
         </div>
 
-        {!poolStats?.topSItems?.length ? (
-          <div className="mt-4 rounded-lg border border-dashed border-white/10 bg-[#090b12]/60 p-6 text-center font-mono text-xs text-slate-500">
-            No S-Class items recorded on this board yet.
-          </div>
-        ) : (
-          <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-            {poolStats.topSItems.map((row) => {
-              const resolved = catalog?.resolveItem(row.item_id, row.item_name, 5) || {
-                id: row.item_id,
-                name: row.item_name,
-                rarity: 5,
-                rank: 'S',
-                category: row.category,
-              };
-              return (
-                <div
-                  key={row.item_id}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-[#090b12] px-3 py-2.5"
-                >
-                  <div className="flex min-w-0 items-center gap-2.5">
-                    <ItemAvatar item={resolved} size="md" />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-white">
-                        {resolved.name}
-                      </div>
-                      <div className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
-                        {row.is_pity_s ? 'Pity S-Class' : row.category}
+        {(() => {
+          const isMonopoly =
+            selectedPool === 'monopoly_limited' ||
+            selectedPool === 'monopoly_standard';
+          const itemsToShow = (poolStats?.topSItems || []).filter((row) =>
+            isMonopoly && charsOnly ? row.category === 'character' || row.is_pity_s : true
+          );
+          if (itemsToShow.length === 0) {
+            return (
+              <div className="mt-4 rounded-lg border border-dashed border-white/10 bg-[#090b12]/60 p-6 text-center font-mono text-xs text-slate-500">
+                No S-Class items recorded on this board yet.
+              </div>
+            );
+          }
+          return (
+            <div className="mt-4 grid grid-cols-1 gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+              {itemsToShow.map((row) => {
+                const resolved = catalog?.resolveItem(row.item_id, row.item_name, 5) || {
+                  id: row.item_id,
+                  name: row.item_name,
+                  rarity: 5,
+                  rank: 'S',
+                  category: row.category,
+                };
+                return (
+                  <div
+                    key={row.item_id}
+                    className="flex items-center justify-between gap-3 rounded-lg border border-white/8 bg-[#090b12] px-3 py-2.5"
+                  >
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <ItemAvatar item={resolved} size="md" />
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-white">
+                          {resolved.name}
+                        </div>
+                        <div className="font-mono text-[10px] uppercase tracking-wider text-slate-500">
+                          {row.is_pity_s ? 'Pity S-Class' : row.category}
+                        </div>
                       </div>
                     </div>
+                    <span className="rounded bg-[#f5c451]/16 px-2 py-0.5 font-mono text-xs font-bold text-[#fde68a] ring-1 ring-[#f5c451]/40 tabular-nums">
+                      {row.count.toLocaleString()}
+                    </span>
                   </div>
-                  <span className="rounded bg-[#f5c451]/16 px-2 py-0.5 font-mono text-xs font-bold text-[#fde68a] ring-1 ring-[#f5c451]/40 tabular-nums">
-                    {row.count.toLocaleString()}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
