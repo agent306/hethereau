@@ -169,9 +169,10 @@
           </li>
         </ul>
         <p>
-          OAuth access tokens stay strictly in your browser memory for your active session and are
-          never logged, sent to any third-party server, or stored on a backend. Sync requests go
-          directly from your browser to Google&apos;s Drive API.
+          OAuth access tokens stay strictly inside your browser (stored in localStorage only while
+          connected so refreshing the page does not sign you out, and cleared immediately when you
+          disconnect) and are never logged, sent to any third-party server, or stored on a backend.
+          Sync requests go directly from your browser to Google&apos;s Drive API.
         </p>
 
         <h2>3. Google API Services User Data Policy</h2>

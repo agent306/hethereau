@@ -305,7 +305,7 @@ export function analyzeAccountPulls(rawRecords = [], catalog) {
     totals: {
       pulls: grandTotalPulls,
       bonusRows: grandTotalBonusRows,
-      anulith: grandTotalPulls * 160,
+      annulith: grandTotalPulls * 160,
       sRanks: grandTotalSRanks,
       sRankExtras: grandTotalSRankNonPity,
       aRanks: grandTotalARanks,

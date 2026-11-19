@@ -187,7 +187,11 @@ export default function SettingsPage({
               className="nte-cut-btn inline-flex items-center gap-2 bg-[#f5c451] px-5 py-2.5 font-display text-sm font-bold uppercase tracking-wider text-[#08090f] shadow-[0_0_24px_rgba(245,196,81,0.26)] transition hover:bg-[#ffd56b] disabled:cursor-not-allowed disabled:opacity-45"
             >
               <Cloud className="h-4 w-4" />
-              {driveSync.syncing ? 'Connecting...' : 'Sign in with Google Drive'}
+              {driveSync.syncing
+                ? 'Connecting...'
+                : driveSync.needsReconnect
+                  ? `Resume Google Drive Sync (${driveSync.email})`
+                  : 'Sign in with Google Drive'}
             </button>
 
             {!driveReady && (

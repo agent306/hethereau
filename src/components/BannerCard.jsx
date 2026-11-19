@@ -220,7 +220,7 @@ export default function BannerCard({
             <strong className="font-mono text-[#f5c451] tabular-nums">{sRankCount}</strong>
           </span>
           <span>
-            Anulith:{' '}
+            Annulith:{' '}
             <strong className="font-mono text-[#2ee6ff] tabular-nums">
               {currencySpent.toLocaleString()}
             </strong>
@@ -233,14 +233,14 @@ export default function BannerCard({
         </div>
       </div>
 
-      {/* S-Class Agent Dossier Strip */}
+      {/* S-Class Character Strip */}
       <div className="border-t border-white/8 bg-[#0b0d15]/70 px-5 py-3.5">
         <div className="mb-2.5 flex items-center justify-between gap-2">
           <div className="flex items-center gap-1.5 font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
             <Sparkles className="h-3.5 w-3.5 text-[#f5c451]" />
             {isMonopoly
               ? charactersOnly
-                ? 'S-Class Agents'
+                ? 'S-Class Characters'
                 : 'All S-Class Drops'
               : 'S-Class Pulls'}
           </div>

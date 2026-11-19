@@ -8,7 +8,7 @@ export const OFFICIAL_VERSION_KEY_ART =
   'https://nte.perfectworld.com/en/images/cover261111/slide2.jpg';
 
 export const OFFICIAL_CHARACTER_POSTERS = {
-  // Limited S-Class Agents
+  // Limited S-Class Characters
   '1090': 'https://nte.perfectworld.com/public/m/images/main261111/role-poster-yem.png', // Elyms
   '1057': 'https://nte.perfectworld.com/public/m/images/main261021/role-poster-mingyin.png', // Akane Rin
   '1042': 'https://nte.perfectworld.com/public/m/images/main260930/role-poster-heiyu.png', // Blackbird
@@ -23,7 +23,7 @@ export const OFFICIAL_CHARACTER_POSTERS = {
   '1074':
     'https://raw.githubusercontent.com/Waifus-Grace/NTE_Assets/main/UI/Gacha/Lottery_Img/Exe/YH_UI_Activity_Big_exe3.png', // Exe (V1.5 Phase 2)
 
-  // Standard S-Class & A-Class Agents
+  // Standard S-Class & A-Class Characters
   '1023': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-baicang.png', // Baicang
   '1054': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-dfde.png', // Daffodill
   '1039': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-fadiya.png', // Fadia

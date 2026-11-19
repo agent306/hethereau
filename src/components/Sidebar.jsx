@@ -38,6 +38,7 @@ export default function Sidebar({
   totalPulls,
   driveSync,
   onDriveSyncNow,
+  onDriveReconnect,
   mobileOpen,
   onToggleMobile,
 }) {
@@ -215,6 +216,31 @@ export default function Sidebar({
                     minute: '2-digit',
                   })}`
                 : 'Auto-syncs every 5s'}
+            </div>
+          </div>
+        ) : driveSync?.needsReconnect ? (
+          <div className="rounded-lg border border-[#f5c451]/35 bg-[#f5c451]/[0.07] p-3 text-xs">
+            <div className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 font-display text-xs font-bold uppercase tracking-wide text-[#fde68a]">
+                <Cloud className="h-3.5 w-3.5 text-[#f5c451]" />
+                Drive Paused
+              </span>
+              <button
+                type="button"
+                onClick={onDriveReconnect}
+                disabled={driveSync.syncing}
+                className="rounded bg-[#f5c451] px-2 py-0.5 font-mono text-[10px] font-bold uppercase text-[#08090f] hover:bg-[#ffd56b] disabled:opacity-40"
+              >
+                {driveSync.syncing ? '...' : 'Resume'}
+              </button>
+            </div>
+            {driveSync.email && (
+              <div className="mt-1 truncate font-mono text-[11px] text-slate-300" title={driveSync.email}>
+                {driveSync.email}
+              </div>
+            )}
+            <div className="mt-0.5 text-[10px] text-slate-400">
+              Token expired — click Resume to sync.
             </div>
           </div>
         ) : (

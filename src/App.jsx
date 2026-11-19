@@ -18,12 +18,15 @@ import {
   getUnsyncedGlobalRecords,
 } from './lib/statsApi.js';
 import {
+  clearDriveSession,
   countStateRecords,
   createDriveSyncFile,
   downloadDriveSyncFile,
   fetchGoogleUserEmail,
   findDriveSyncFile,
+  loadDriveSession,
   requestDriveAccessToken,
+  saveDriveSession,
   smartMergeStates,
   statesHaveSamePullIds,
   updateDriveSyncFile,
@@ -35,25 +38,45 @@ export default function App() {
   const [appState, setAppState] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  // Restore saved Google Drive session immediately on load so refreshing doesn't log the user out
+  const initialSavedDrive = useMemo(() => loadDriveSession(), []);
+  const initialTokenValid = Boolean(
+    initialSavedDrive?.accessToken &&
+      Date.now() < Number(initialSavedDrive.expiresAt || 0) - 60_000
+  );
+
   // Google Drive Sync state (debounced 5s cloud sync)
-  const [driveSync, setDriveSync] = useState({
-    signedIn: false,
+  const [driveSync, setDriveSync] = useState(() => ({
+    signedIn: initialTokenValid,
+    needsReconnect: Boolean(!initialTokenValid && initialSavedDrive?.email),
     syncing: false,
-    email: '',
-    lastSyncAt: null,
+    email: initialSavedDrive?.email || '',
+    lastSyncAt: initialSavedDrive?.lastSyncAt || null,
     error: null,
-  });
+  }));
   const [conflict, setConflict] = useState(null);
   const [globalSyncVersion, setGlobalSyncVersion] = useState(0);
   const [globalSyncStatus, setGlobalSyncStatus] = useState(null);
 
   const driveAuthRef = useRef({
-    accessToken: null,
-    expiresAt: 0,
-    fileId: null,
+    accessToken: initialTokenValid ? initialSavedDrive.accessToken : null,
+    expiresAt: initialTokenValid ? Number(initialSavedDrive.expiresAt) : 0,
+    fileId: initialSavedDrive?.fileId || null,
+    email: initialSavedDrive?.email || '',
   });
   const syncTimerRef = useRef(null);
   const stateRef = useRef(null);
+
+  function persistCurrentDriveSession(lastSyncAtOverride) {
+    const auth = driveAuthRef.current;
+    saveDriveSession({
+      accessToken: auth.accessToken,
+      expiresAt: auth.expiresAt,
+      fileId: auth.fileId,
+      email: auth.email,
+      lastSyncAt: lastSyncAtOverride ?? driveSync.lastSyncAt ?? null,
+    });
+  }
 
   useEffect(() => {
     stateRef.current = appState;
@@ -61,10 +84,70 @@ export default function App() {
 
   useEffect(() => {
     let mounted = true;
-    Promise.all([loadCatalog(), loadAppState()]).then(([cat, state]) => {
+    Promise.all([loadCatalog(), loadAppState()]).then(async ([cat, state]) => {
       if (!mounted) return;
       setCatalog(cat);
       setAppState(state);
+
+      // If we restored an active Drive session after refresh, verify & silently sync remote changes
+      const auth = driveAuthRef.current;
+      if (auth.accessToken && Date.now() < auth.expiresAt - 60_000) {
+        try {
+          const remoteFile = await findDriveSyncFile(auth.accessToken);
+          if (!mounted) return;
+          if (remoteFile?.id) {
+            auth.fileId = remoteFile.id;
+            const remoteState = await downloadDriveSyncFile(auth.accessToken, remoteFile.id);
+            if (!mounted) return;
+            if (remoteState && !statesHaveSamePullIds(state, remoteState)) {
+              const merged = smartMergeStates(state, remoteState);
+              setAppState(merged);
+              saveAppState(merged);
+              const saved = await updateDriveSyncFile(auth.accessToken, remoteFile.id, merged);
+              const syncTs = saved?.modifiedTime || new Date().toISOString();
+              saveDriveSession({
+                accessToken: auth.accessToken,
+                expiresAt: auth.expiresAt,
+                fileId: auth.fileId,
+                email: auth.email,
+                lastSyncAt: syncTs,
+              });
+              setDriveSync((prev) => ({ ...prev, signedIn: true, lastSyncAt: syncTs, error: null }));
+            } else {
+              const syncTs = remoteFile.modifiedTime || auth.lastSyncAt || null;
+              saveDriveSession({
+                accessToken: auth.accessToken,
+                expiresAt: auth.expiresAt,
+                fileId: auth.fileId,
+                email: auth.email,
+                lastSyncAt: syncTs,
+              });
+              if (syncTs) {
+                setDriveSync((prev) => ({ ...prev, lastSyncAt: syncTs }));
+              }
+            }
+          }
+        } catch (err) {
+          if (!mounted) return;
+          if (err?.message === 'AUTH_EXPIRED') {
+            auth.accessToken = null;
+            auth.expiresAt = 0;
+            saveDriveSession({
+              accessToken: null,
+              expiresAt: 0,
+              fileId: auth.fileId,
+              email: auth.email,
+              lastSyncAt: initialSavedDrive?.lastSyncAt || null,
+            });
+            setDriveSync((prev) => ({
+              ...prev,
+              signedIn: false,
+              needsReconnect: Boolean(auth.email),
+              error: null,
+            }));
+          }
+        }
+      }
     });
     return () => {
       mounted = false;
@@ -77,9 +160,10 @@ export default function App() {
     if (auth.accessToken && Date.now() < auth.expiresAt - 60_000) {
       return auth.accessToken;
     }
-    const fresh = await requestDriveAccessToken({ prompt: '' });
+    const fresh = await requestDriveAccessToken({ prompt: '', hint: auth.email || '' });
     auth.accessToken = fresh.accessToken;
     auth.expiresAt = fresh.expiresAt;
+    persistCurrentDriveSession();
     return fresh.accessToken;
   }
 
@@ -103,20 +187,34 @@ export default function App() {
           driveAuthRef.current.fileId = res.id;
         }
       }
+      const syncTs = res?.modifiedTime || new Date().toISOString();
+      persistCurrentDriveSession(syncTs);
       setDriveSync((prev) => ({
         ...prev,
+        signedIn: true,
+        needsReconnect: false,
         syncing: false,
-        lastSyncAt: res?.modifiedTime || new Date().toISOString(),
+        lastSyncAt: syncTs,
         error: null,
       }));
     } catch (err) {
+      if (err.message === 'AUTH_EXPIRED') {
+        driveAuthRef.current.accessToken = null;
+        driveAuthRef.current.expiresAt = 0;
+        persistCurrentDriveSession();
+        setDriveSync((prev) => ({
+          ...prev,
+          signedIn: false,
+          needsReconnect: Boolean(prev.email),
+          syncing: false,
+          error: 'Google session expired — click Resume Sync to continue.',
+        }));
+        return;
+      }
       setDriveSync((prev) => ({
         ...prev,
         syncing: false,
-        error:
-          err.message === 'AUTH_EXPIRED'
-            ? 'Google session expired -- click Sign in again.'
-            : err.message,
+        error: err.message,
       }));
     }
   }
@@ -141,22 +239,46 @@ export default function App() {
     });
   }
 
-  async function handleDriveConnect() {
+  async function handleDriveConnect({ silentFirst = false } = {}) {
     setDriveSync((prev) => ({ ...prev, syncing: true, error: null }));
+    const rememberedEmail = driveAuthRef.current.email || driveSync.email || '';
     try {
-      const { accessToken, expiresAt } = await requestDriveAccessToken({
-        prompt: 'consent',
-      });
+      let tokenRes;
+      if (silentFirst && rememberedEmail) {
+        try {
+          tokenRes = await requestDriveAccessToken({
+            prompt: '',
+            hint: rememberedEmail,
+          });
+        } catch {
+          tokenRes = await requestDriveAccessToken({
+            prompt: 'consent',
+            hint: rememberedEmail,
+          });
+        }
+      } else {
+        tokenRes = await requestDriveAccessToken({
+          prompt: rememberedEmail ? '' : 'consent',
+          hint: rememberedEmail,
+        }).catch(async () =>
+          requestDriveAccessToken({ prompt: 'consent', hint: rememberedEmail })
+        );
+      }
+
+      const { accessToken, expiresAt } = tokenRes;
       driveAuthRef.current = {
         accessToken,
         expiresAt,
-        fileId: null,
+        fileId: driveAuthRef.current.fileId || null,
+        email: rememberedEmail,
       };
 
-      const [email, remoteFile] = await Promise.all([
+      const [fetchedEmail, remoteFile] = await Promise.all([
         fetchGoogleUserEmail(accessToken),
         findDriveSyncFile(accessToken),
       ]);
+      const email = fetchedEmail || rememberedEmail;
+      driveAuthRef.current.email = email;
 
       const local = stateRef.current;
       const localCount = countStateRecords(local);
@@ -167,23 +289,41 @@ export default function App() {
         const remoteCount = countStateRecords(remoteState);
 
         if (remoteState && remoteCount > 0 && localCount === 0) {
+          const syncTs = remoteFile.modifiedTime || new Date().toISOString();
           updateState(remoteState, { skipRemoteSync: true });
+          saveDriveSession({
+            accessToken,
+            expiresAt,
+            fileId: remoteFile.id,
+            email,
+            lastSyncAt: syncTs,
+          });
           setDriveSync({
             signedIn: true,
+            needsReconnect: false,
             syncing: false,
             email,
-            lastSyncAt: remoteFile.modifiedTime || new Date().toISOString(),
+            lastSyncAt: syncTs,
             error: null,
           });
           return;
         }
 
         if (remoteState && remoteCount > 0 && !statesHaveSamePullIds(local, remoteState)) {
+          const syncTs = remoteFile.modifiedTime || null;
+          saveDriveSession({
+            accessToken,
+            expiresAt,
+            fileId: remoteFile.id,
+            email,
+            lastSyncAt: syncTs,
+          });
           setDriveSync({
             signedIn: true,
+            needsReconnect: false,
             syncing: false,
             email,
-            lastSyncAt: remoteFile.modifiedTime || null,
+            lastSyncAt: syncTs,
             error: null,
           });
           setConflict({
@@ -198,29 +338,45 @@ export default function App() {
         ? await updateDriveSyncFile(accessToken, driveAuthRef.current.fileId, local)
         : await createDriveSyncFile(accessToken, local);
       driveAuthRef.current.fileId = saved.id;
+      const syncTs = saved.modifiedTime || new Date().toISOString();
+
+      saveDriveSession({
+        accessToken,
+        expiresAt,
+        fileId: saved.id,
+        email,
+        lastSyncAt: syncTs,
+      });
 
       setDriveSync({
         signedIn: true,
+        needsReconnect: false,
         syncing: false,
         email,
-        lastSyncAt: saved.modifiedTime || new Date().toISOString(),
+        lastSyncAt: syncTs,
         error: null,
       });
     } catch (err) {
       driveAuthRef.current.accessToken = null;
-      setDriveSync({
+      setDriveSync((prev) => ({
         signedIn: false,
+        needsReconnect: Boolean(rememberedEmail),
         syncing: false,
-        email: '',
-        lastSyncAt: null,
+        email: rememberedEmail,
+        lastSyncAt: prev.lastSyncAt,
         error: err.message,
-      });
+      }));
       throw err;
     }
   }
 
   async function handleDriveSyncNow() {
-    if (!driveAuthRef.current.accessToken) return;
+    if (!driveAuthRef.current.accessToken) {
+      if (driveSync.needsReconnect) {
+        await handleDriveConnect({ silentFirst: true });
+      }
+      return;
+    }
     if (syncTimerRef.current) clearTimeout(syncTimerRef.current);
     setDriveSync((prev) => ({ ...prev, syncing: true, error: null }));
     try {
@@ -252,14 +408,17 @@ export default function App() {
         // ignore revoke error
       }
     }
+    clearDriveSession();
     driveAuthRef.current = {
       accessToken: null,
       expiresAt: 0,
       fileId: null,
+      email: '',
     };
     setConflict(null);
     setDriveSync({
       signedIn: false,
+      needsReconnect: false,
       syncing: false,
       email: '',
       lastSyncAt: null,
@@ -397,6 +556,33 @@ export default function App() {
     });
   }
 
+  function handleAdjustManualCharacter(charId, delta) {
+    if (!charId || !delta) return;
+    updateState((prev) => {
+      const pid = prev.activeProfileId;
+      const prof = prev.profiles[pid];
+      const currentMap = { ...(prof.manualCharacters || {}) };
+      const cur = Math.max(0, Number(currentMap[charId] || 0));
+      const next = Math.max(0, Math.min(7, cur + delta));
+      if (next === 0) {
+        delete currentMap[charId];
+      } else {
+        currentMap[charId] = next;
+      }
+      return {
+        ...prev,
+        profiles: {
+          ...prev.profiles,
+          [pid]: {
+            ...prof,
+            updatedAt: new Date().toISOString(),
+            manualCharacters: currentMap,
+          },
+        },
+      };
+    });
+  }
+
   if (!appState || !catalog) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-slate-400">
@@ -417,6 +603,7 @@ export default function App() {
         totalPulls={analysis.totals.pulls}
         driveSync={driveSync}
         onDriveSyncNow={handleDriveSyncNow}
+        onDriveReconnect={() => handleDriveConnect({ silentFirst: true }).catch(() => {})}
         mobileOpen={mobileOpen}
         onToggleMobile={() => setMobileOpen((o) => !o)}
       />
@@ -437,7 +624,12 @@ export default function App() {
           ) : pathname === '/timeline' ? (
             <TimelinePage catalog={catalog} />
           ) : pathname === '/characters' ? (
-            <CharactersPage catalog={catalog} allRecords={analysis.allRecords} />
+            <CharactersPage
+              catalog={catalog}
+              allRecords={analysis.allRecords}
+              manualCharacters={activeProfile?.manualCharacters || {}}
+              onAdjustManualCharacter={handleAdjustManualCharacter}
+            />
           ) : pathname === '/stats' ? (
             <GlobalStatsPage
               catalog={catalog}

@@ -166,11 +166,11 @@ export default function DashboardPage({
         <div className="nte-panel relative overflow-hidden rounded-xl p-4">
           <span className="absolute top-0 bottom-0 left-0 w-[3px] bg-[#2ee6ff]" />
           <div className="flex items-center justify-between font-mono text-[10px] font-bold uppercase tracking-widest text-slate-400">
-            <span>Anulith Spent</span>
+            <span>Annulith Spent</span>
             <Coins className="h-4 w-4 text-[#2ee6ff]" />
           </div>
           <div className="mt-2 font-mono text-2xl font-bold text-[#2ee6ff] tabular-nums">
-            {totals.anulith.toLocaleString()}
+            {totals.annulith.toLocaleString()}
           </div>
           <div className="mt-0.5 font-mono text-[11px] text-slate-500">160 per roll</div>
         </div>
@@ -230,7 +230,7 @@ export default function DashboardPage({
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h3 className="font-display text-lg font-bold uppercase tracking-wide text-white">
-              {charactersOnly ? 'Recent Agent Pulls' : 'Recent Pulls'}
+              {charactersOnly ? 'Recent Character Pulls' : 'Recent Pulls'}
             </h3>
             <Link
               href="/history"

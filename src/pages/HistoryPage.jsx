@@ -149,7 +149,7 @@ export default function HistoryPage({ allRecords, initialPool = 'all' }) {
               setQuery(e.target.value);
               setPage(1);
             }}
-            placeholder="Search agent, arc, banner..."
+            placeholder="Search character, arc, banner..."
             className="w-full rounded-lg border border-white/10 bg-[#080a10] py-2 pr-3 pl-9 text-sm text-white placeholder-slate-500 outline-none focus:border-[#f5c451]/70"
           />
         </div>

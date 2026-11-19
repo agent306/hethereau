@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Search, Sparkles, CheckCircle2, Users } from 'lucide-react';
+import { Search, Sparkles, CheckCircle2, Users, Plus, Minus } from 'lucide-react';
 import { getCharacterPoster } from '../lib/officialMedia.js';
 
 function CharacterCardImage({ charId, name }) {
@@ -25,13 +25,18 @@ function CharacterCardImage({ charId, name }) {
   );
 }
 
-export default function CharactersPage({ catalog, allRecords = [] }) {
+export default function CharactersPage({
+  catalog,
+  allRecords = [],
+  manualCharacters = {},
+  onAdjustManualCharacter,
+}) {
   const [rankFilter, setRankFilter] = useState('all'); // 'all' | 'S' | 'A'
   const [ownedFilter, setOwnedFilter] = useState('all'); // 'all' | 'owned' | 'unowned'
   const [query, setQuery] = useState('');
 
-  // Auto-count owned copies straight from the user's pull history (like Paimon.moe!)
-  const ownedCounts = useMemo(() => {
+  // Auto-count pulled copies straight from the user's pull history
+  const pulledCounts = useMemo(() => {
     const map = {};
     for (const r of allRecords) {
       if (r.item?.category === 'character') {
@@ -47,8 +52,18 @@ export default function CharactersPage({ catalog, allRecords = [] }) {
     const list = [];
     for (const item of catalog.itemsByLower.values()) {
       if (item.category === 'character') {
-        const copies = ownedCounts[item.id] || 0;
-        list.push({ ...item, copies, owned: copies > 0 });
+        const pulled = pulledCounts[item.id] || 0;
+        const manual = Math.max(0, Number(manualCharacters?.[item.id] || 0));
+        const copies = pulled + manual;
+        const awakening = copies > 0 ? Math.min(6, copies - 1) : null;
+        list.push({
+          ...item,
+          pulled,
+          manual,
+          copies,
+          awakening,
+          owned: copies > 0,
+        });
       }
     }
     return list.sort((a, b) => {
@@ -56,7 +71,7 @@ export default function CharactersPage({ catalog, allRecords = [] }) {
       if (b.owned !== a.owned) return Number(b.owned) - Number(a.owned);
       return a.name.localeCompare(b.name);
     });
-  }, [catalog, ownedCounts]);
+  }, [catalog, pulledCounts, manualCharacters]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,13 +95,13 @@ export default function CharactersPage({ catalog, allRecords = [] }) {
         <div>
           <div className="mb-1 flex items-center gap-2 font-mono text-[11px] font-semibold tracking-widest uppercase text-[#f5c451]">
             <span className="inline-block h-1.5 w-1.5 rotate-45 bg-[#2ee6ff]" />
-            Eibon Dossier // Playable Agents
+            Eibon Dossier // Playable Characters
           </div>
           <h1 className="font-display text-3xl font-bold tracking-wide uppercase text-white sm:text-4xl">
             Characters
           </h1>
           <p className="mt-1 text-sm text-slate-400">
-            Official Hethereau agent artwork · Ownership &amp; copy counts auto-synced from your pull ledger
+            Official Hethereau character artwork · Auto-synced from pull history + manual Character Selector / Awakening controls
           </p>
         </div>
 
@@ -114,7 +129,7 @@ export default function CharactersPage({ catalog, allRecords = [] }) {
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search agent name..."
+            placeholder="Search character name..."
             className="w-full rounded-lg border border-white/10 bg-[#080a10] py-2 pr-3 pl-9 text-sm text-white placeholder-slate-500 outline-none focus:border-[#f5c451]/70"
           />
         </div>
@@ -162,24 +177,35 @@ export default function CharactersPage({ catalog, allRecords = [] }) {
         </div>
       </div>
 
+      {/* Hint bar */}
+      <div className="flex items-center gap-2.5 rounded-lg border border-white/8 bg-[#0b0d15]/80 px-3.5 py-2 text-xs text-slate-400">
+        <Users className="h-3.5 w-3.5 shrink-0 text-[#2ee6ff]" />
+        <span>
+          Use <strong className="text-slate-200">+</strong> / <strong className="text-slate-200">&minus;</strong> on any character card to add Character Selectors (e.g. 50-roll Strange Encounters Selector), free unlocks, or Mind Shard Awakenings. Changes auto-sync with Google Drive.
+        </span>
+      </div>
+
       {/* Poster Card Grid */}
       {filtered.length === 0 ? (
         <div className="nte-panel rounded-xl py-12 text-center font-mono text-xs uppercase text-slate-500">
-          No agents match your filters.
+          No characters match your filters.
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
           {filtered.map((ch) => {
             const isS = ch.rank === 'S';
+            const copyBreakdown = `${ch.pulled} pulled${
+              ch.manual > 0 ? ` + ${ch.manual} manual` : ''
+            }`;
             return (
               <div
                 key={ch.id}
-                className={`nte-panel group relative overflow-hidden rounded-xl border transition ${
+                className={`nte-panel group flex flex-col overflow-hidden rounded-xl border transition ${
                   ch.owned
                     ? isS
                       ? 'border-[#f5c451]/45 shadow-[0_0_24px_rgba(245,196,81,0.1)]'
                       : 'border-[#e046ff]/40'
-                    : 'border-white/8 opacity-70 hover:opacity-100'
+                    : 'border-white/8 opacity-80 hover:opacity-100'
                 }`}
               >
                 <div className="relative aspect-[3/4] overflow-hidden bg-[#090b12]">
@@ -198,15 +224,18 @@ export default function CharactersPage({ catalog, allRecords = [] }) {
                     {ch.rank}
                   </span>
 
-                  {/* Owned Copy Badge */}
+                  {/* Owned / Awakening Badge */}
                   {ch.owned ? (
-                    <span className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 font-mono text-[10px] font-bold text-[#08090f]">
+                    <span
+                      className="absolute top-2.5 right-2.5 inline-flex items-center gap-1 rounded bg-emerald-500/90 px-2 py-0.5 font-mono text-[10px] font-bold text-[#08090f]"
+                      title={`Awakening ${ch.awakening} (${copyBreakdown})`}
+                    >
                       <CheckCircle2 className="h-2.5 w-2.5" />
-                      ×{ch.copies}
+                      A{ch.awakening}
                     </span>
                   ) : (
                     <span className="absolute top-2.5 right-2.5 rounded bg-black/70 px-2 py-0.5 font-mono text-[9px] font-semibold uppercase text-slate-400">
-                      Not Pulled
+                      Unowned
                     </span>
                   )}
 
@@ -216,27 +245,67 @@ export default function CharactersPage({ catalog, allRecords = [] }) {
                       {ch.name}
                     </div>
                     <div className="mt-0.5 flex items-center justify-between font-mono text-[10px] text-slate-400">
-                      <span>{isS ? 'S-Class Agent' : 'A-Class Agent'}</span>
-                      {ch.owned && (
-                        <span className="font-bold text-[#f5c451]">
-                          C{Math.max(0, ch.copies - 1)}
-                        </span>
-                      )}
+                      <span>{isS ? 'S-Class' : 'A-Class'}</span>
+                      <span title={copyBreakdown}>
+                        {ch.owned ? (
+                          <>
+                            <span className="text-slate-200">×{ch.copies}</span>
+                            {ch.manual > 0 && (
+                              <span className="ml-1 text-[#2ee6ff]">(+{ch.manual})</span>
+                            )}
+                          </>
+                        ) : (
+                          '0 copies'
+                        )}
+                      </span>
                     </div>
                   </div>
                 </div>
+
+                {/* Manual Initial Unlock / Awakening Control Bar */}
+                {onAdjustManualCharacter && (
+                  <div className="flex items-center justify-between border-t border-white/8 bg-[#0b0d15] px-2.5 py-2">
+                    <span
+                      className="font-mono text-[10px] uppercase tracking-wider text-slate-400"
+                      title={copyBreakdown}
+                    >
+                      {ch.owned ? `Awakening ${ch.awakening}` : 'Add Unlock'}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={() => onAdjustManualCharacter(ch.id, -1)}
+                        disabled={ch.manual <= 0}
+                        title={
+                          ch.manual > 0
+                            ? 'Remove 1 manual copy/unlock'
+                            : 'No manual copies to remove (pulled copies come from your pull history)'
+                        }
+                        className="flex h-6 w-6 items-center justify-center rounded border border-white/10 bg-white/[0.04] text-slate-300 transition hover:border-rose-400/50 hover:bg-rose-500/15 hover:text-rose-200 disabled:cursor-not-allowed disabled:opacity-30"
+                        aria-label={`Decrease manual Awakening for ${ch.name}`}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onAdjustManualCharacter(ch.id, 1)}
+                        disabled={ch.manual >= 7}
+                        title={
+                          ch.owned
+                            ? `Add +1 manual Awakening / Mind Shard for ${ch.name}`
+                            : `Manually unlock ${ch.name} (A0) — e.g. from Character Selector`
+                        }
+                        className="flex h-6 w-6 items-center justify-center rounded border border-[#f5c451]/35 bg-[#f5c451]/14 text-[#fde68a] transition hover:bg-[#f5c451]/28 disabled:cursor-not-allowed disabled:opacity-30"
+                        aria-label={`Add manual unlock or Awakening for ${ch.name}`}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             );
           })}
-        </div>
-      )}
-
-      {allRecords.length === 0 && (
-        <div className="nte-panel flex items-center gap-2.5 rounded-xl px-4 py-3 text-xs text-slate-400">
-          <Users className="h-4 w-4 shrink-0 text-[#2ee6ff]" />
-          <span>
-            Import your pull history to automatically light up your owned agents and copy counts.
-          </span>
         </div>
       )}
     </div>

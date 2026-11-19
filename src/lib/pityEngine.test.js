@@ -138,6 +138,7 @@ describe('NTE Pity Engine & Format Parsers', () => {
           id: 'main',
           name: 'Main',
           updatedAt: '2026-11-19T12:00:00Z',
+          manualCharacters: { '1023': 1 },
           records: [
             { id: 'a1', item_id: '1010', time: '2026-11-19 10:00:00' },
             { id: 'a2', item_id: '1004', time: '2026-11-19 10:01:00' },
@@ -152,6 +153,7 @@ describe('NTE Pity Engine & Format Parsers', () => {
           id: 'main',
           name: 'Main',
           updatedAt: '2026-11-18T12:00:00Z',
+          manualCharacters: { '1023': 2, '1054': 1 },
           records: [
             { id: 'a1', item_id: '1010', time: '2026-11-19 10:00:00' },
             { id: 'b3', item_id: '1003', time: '2026-11-18 09:00:00' },
@@ -170,6 +172,7 @@ describe('NTE Pity Engine & Format Parsers', () => {
     const merged = smartMergeStates(local, remote);
     expect(Object.keys(merged.profiles).sort()).toEqual(['alt', 'main']);
     expect(merged.profiles.main.records.map((r) => r.id).sort()).toEqual(['a1', 'a2', 'b3']);
+    expect(merged.profiles.main.manualCharacters).toEqual({ '1023': 2, '1054': 1 });
     expect(merged.profiles.alt.records).toHaveLength(1);
     expect(statesHaveSamePullIds(merged, merged)).toBe(true);
   });

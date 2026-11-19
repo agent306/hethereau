@@ -11,8 +11,39 @@ import { mergePullRecords } from './pityEngine.js';
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const SYNC_FILENAME = 'hethereau-sync-v1.json';
 const GIS_SCRIPT_URL = 'https://accounts.google.com/gsi/client';
+const DRIVE_SESSION_KEY = 'hethereau_drive_session_v1';
 
 let gisLoadPromise = null;
+
+export function saveDriveSession(session) {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(DRIVE_SESSION_KEY, JSON.stringify(session));
+  } catch {
+    // ignore storage quota errors
+  }
+}
+
+export function loadDriveSession() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = window.localStorage.getItem(DRIVE_SESSION_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+export function clearDriveSession() {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.removeItem(DRIVE_SESSION_KEY);
+  } catch {
+    // ignore
+  }
+}
 
 export function getGoogleClientId() {
   const id = typeof import.meta !== 'undefined' && import.meta.env
@@ -58,7 +89,7 @@ export function loadGoogleIdentityScript() {
   return gisLoadPromise;
 }
 
-export async function requestDriveAccessToken({ prompt = 'consent' } = {}) {
+export async function requestDriveAccessToken({ prompt = 'consent', hint = '' } = {}) {
   const id = getGoogleClientId();
   if (!id) {
     throw new Error('Google Drive sync is not configured yet (missing VITE_GOOGLE_CLIENT_ID).');
@@ -66,7 +97,7 @@ export async function requestDriveAccessToken({ prompt = 'consent' } = {}) {
   await loadGoogleIdentityScript();
 
   return await new Promise((resolve, reject) => {
-    const tokenClient = window.google.accounts.oauth2.initTokenClient({
+    const config = {
       client_id: id,
       scope: `${DRIVE_SCOPE} https://www.googleapis.com/auth/userinfo.email`,
       include_granted_scopes: true,
@@ -99,7 +130,9 @@ export async function requestDriveAccessToken({ prompt = 'consent' } = {}) {
       error_callback: (err) => {
         reject(new Error(err?.message || 'Google sign-in popup was closed or blocked.'));
       },
-    });
+    };
+    if (hint) config.hint = hint;
+    const tokenClient = window.google.accounts.oauth2.initTokenClient(config);
     tokenClient.requestAccessToken({ prompt });
   });
 }
@@ -288,10 +321,24 @@ export function smartMergeStates(localState, remoteState) {
       const lTime = lp.updatedAt || '';
       const rTime = rp.updatedAt || '';
       const newer = lTime >= rTime ? lp : rp;
+
+      const mergedManual = {};
+      const manualIds = new Set([
+        ...Object.keys(lp.manualCharacters || {}),
+        ...Object.keys(rp.manualCharacters || {}),
+      ]);
+      for (const cid of manualIds) {
+        const lv = Math.max(0, Number(lp.manualCharacters?.[cid] || 0));
+        const rv = Math.max(0, Number(rp.manualCharacters?.[cid] || 0));
+        const val = Math.max(lv, rv);
+        if (val > 0) mergedManual[cid] = val;
+      }
+
       mergedProfiles[pid] = {
         ...newer,
         updatedAt: new Date().toISOString(),
         records: merged,
+        manualCharacters: mergedManual,
       };
     }
   }
@@ -319,6 +366,12 @@ export function statesHaveSamePullIds(a, b) {
     const setA = new Set(ra.map((r) => r.id));
     for (const r of rb) {
       if (!setA.has(r.id)) return false;
+    }
+    const ma = a.profiles[keysA[i]]?.manualCharacters || {};
+    const mb = b.profiles[keysB[i]]?.manualCharacters || {};
+    const mKeys = new Set([...Object.keys(ma), ...Object.keys(mb)]);
+    for (const cid of mKeys) {
+      if (Number(ma[cid] || 0) !== Number(mb[cid] || 0)) return false;
     }
   }
   return true;
