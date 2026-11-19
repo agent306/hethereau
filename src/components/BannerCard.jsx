@@ -24,6 +24,7 @@ export default function BannerCard({
     currentSPity,
     currentAPity,
     inSoftPity,
+    nextSRankChance,
     guaranteedNext,
     sRankCount,
     nonPitySCount,
@@ -88,7 +89,7 @@ export default function BannerCard({
           {inSoftPity && (
             <span className="inline-flex items-center gap-1 rounded border border-[#f5c451]/45 bg-[#f5c451]/15 px-2.5 py-0.5 font-mono text-[11px] font-bold text-[#fde68a]">
               <Flame className="h-3 w-3 text-[#f5c451]" />
-              BOARD MOD ACTIVE (~19.6%)
+              BOARD MOD ACTIVE (19.59%)
             </span>
           )}
           {def.key === 'fork_lottery' && guaranteedNext && (
@@ -150,13 +151,33 @@ export default function BannerCard({
         {/* Segmented Board-Tile Pity Track */}
         {hardPity && (
           <div className="mt-4">
-            <div className="mb-1.5 flex items-center justify-between font-mono text-[11px] text-slate-400">
+            <div className="mb-1.5 flex flex-wrap items-center justify-between gap-2 font-mono text-[11px] text-slate-400">
               <span>{Math.max(0, hardPity - currentSPity)} pulls to hard pity</span>
-              {def.softPity && (
-                <span className="font-semibold text-[#f5c451]">
-                  BOARD MOD @ {def.softPity}
-                </span>
-              )}
+              <div className="flex items-center gap-2">
+                {nextSRankChance && (
+                  <span
+                    className={`rounded px-1.5 py-0.5 text-[10px] font-bold tracking-wider ring-1 ${
+                      nextSRankChance.tier === 'hard'
+                        ? 'bg-emerald-500/20 text-emerald-300 ring-emerald-400/45'
+                        : nextSRankChance.tier === 'soft'
+                          ? 'bg-[#f5c451]/20 text-[#fde68a] ring-[#f5c451]/55'
+                          : 'bg-[#2ee6ff]/12 text-[#67e8f9] ring-[#2ee6ff]/35'
+                    }`}
+                    title={
+                      isMonopoly
+                        ? `Next roll (#${currentSPity + 1}) S-Class Character chance: ${nextSRankChance.label} (Base 0.99% · Board Mod @ 70: 19.59% · Hard Pity @ 90: 100%)`
+                        : `Next roll (#${currentSPity + 1}) S-Class Arc chance: ${nextSRankChance.label} (Base 3.0% · Hard Pity @ 60: 100%)`
+                    }
+                  >
+                    NEXT: {nextSRankChance.label}
+                  </span>
+                )}
+                {def.softPity && (
+                  <span className="font-semibold text-[#f5c451]">
+                    SOFT PITY @ {def.softPity}
+                  </span>
+                )}
+              </div>
             </div>
             <div className="relative h-3 w-full overflow-hidden rounded-sm border border-white/10 bg-[#080a10]">
               <div

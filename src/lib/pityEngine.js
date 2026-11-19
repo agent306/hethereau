@@ -39,6 +39,36 @@ export function hitRarityForPity(item, poolKey) {
   return item.rarity;
 }
 
+/**
+ * Computes the S-Class success probability (%) for the NEXT roll (`currentSPity + 1`).
+ * - Scarborough Fair Monopoly Boards:
+ *     Pulls 1-70  (currentSPity 0..69)  -> 0.99% base
+ *     Pulls 71-89 (currentSPity 70..88) -> 19.59% Board Modification soft pity
+ *     Pull 90     (currentSPity >= 89)  -> 100% hard pity
+ * - Arc Research (fork_lottery):
+ *     Pulls 1-59  (currentSPity 0..58)  -> 3.0% base per pull
+ *     Pull 60     (currentSPity >= 59)  -> 100% hard pity
+ */
+export function getNextPullChance(poolKey, currentSPity = 0) {
+  const pity = Math.max(0, Number(currentSPity) || 0);
+  if (poolKey === 'monopoly_limited' || poolKey === 'monopoly_standard') {
+    if (pity >= 89) {
+      return { percent: 100, label: '100%', tier: 'hard' };
+    }
+    if (pity >= 70) {
+      return { percent: 19.59, label: '19.59%', tier: 'soft' };
+    }
+    return { percent: 0.99, label: '0.99%', tier: 'base' };
+  }
+  if (poolKey === 'fork_lottery') {
+    if (pity >= 59) {
+      return { percent: 100, label: '100%', tier: 'hard' };
+    }
+    return { percent: 3, label: '3.0%', tier: 'base' };
+  }
+  return null;
+}
+
 export function mergePullRecords(existing = [], incoming = []) {
   const byId = new Map();
   for (const rec of existing) {
@@ -236,6 +266,7 @@ export function analyzeAccountPulls(rawRecords = [], catalog) {
       currentSPity: sPity,
       currentAPity: aPity,
       inSoftPity: Boolean(def.softPity && sPity >= def.softPity),
+      nextSRankChance: getNextPullChance(poolKey, sPity),
       guaranteedNext: poolKey === 'monopoly_limited' ? true : arcGuaranteedNext,
       arcWins,
       arcLosses,

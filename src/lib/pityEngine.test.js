@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { NteCatalog } from './catalog.js';
 import { normalizeExternalJson } from './formats.js';
-import { analyzeAccountPulls, mergePullRecords } from './pityEngine.js';
+import { analyzeAccountPulls, getNextPullChance, mergePullRecords } from './pityEngine.js';
 import { generateSampleNteExport } from './sampleData.js';
 import { smartMergeStates, statesHaveSamePullIds } from './googleDriveSync.js';
 
@@ -171,5 +171,16 @@ describe('NTE Pity Engine & Format Parsers', () => {
     expect(merged.profiles.main.records.map((r) => r.id).sort()).toEqual(['a1', 'a2', 'b3']);
     expect(merged.profiles.alt.records).toHaveLength(1);
     expect(statesHaveSamePullIds(merged, merged)).toBe(true);
+  });
+
+  it('computes accurate next-pull S-Class probabilities across base, soft pity, and hard pity', () => {
+    expect(getNextPullChance('monopoly_limited', 0)).toEqual({ percent: 0.99, label: '0.99%', tier: 'base' });
+    expect(getNextPullChance('monopoly_limited', 69)).toEqual({ percent: 0.99, label: '0.99%', tier: 'base' });
+    expect(getNextPullChance('monopoly_limited', 70)).toEqual({ percent: 19.59, label: '19.59%', tier: 'soft' });
+    expect(getNextPullChance('monopoly_standard', 88)).toEqual({ percent: 19.59, label: '19.59%', tier: 'soft' });
+    expect(getNextPullChance('monopoly_limited', 89)).toEqual({ percent: 100, label: '100%', tier: 'hard' });
+    expect(getNextPullChance('fork_lottery', 0)).toEqual({ percent: 3, label: '3.0%', tier: 'base' });
+    expect(getNextPullChance('fork_lottery', 59)).toEqual({ percent: 100, label: '100%', tier: 'hard' });
+    expect(getNextPullChance('mystery_box', 12)).toBeNull();
   });
 });
