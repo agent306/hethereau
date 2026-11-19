@@ -21,7 +21,7 @@ export const OFFICIAL_CHARACTER_POSTERS = {
   '1052': 'https://nte.perfectworld.com/public/m/images/main260513/role-poster-xun.png', // Hotori
   '1010': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-nanally.png', // Nanally
   '1074':
-    'https://raw.githubusercontent.com/Waifus-Grace/NTE_Assets/main/UI/Gacha/Lottery_Img/Exe/YH_UI_Activity_Big_exe1.png', // Exe (V1.5 Phase 2)
+    'https://raw.githubusercontent.com/Waifus-Grace/NTE_Assets/main/UI/Gacha/Lottery_Img/Exe/YH_UI_Activity_Big_exe3.png', // Exe (V1.5 Phase 2)
 
   // Standard S-Class & A-Class Agents
   '1023': 'https://nte.perfectworld.com/public/m/images/main260402/role-poster-baicang.png', // Baicang
